@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh"><meta charset="utf-8"><meta name="generator" content="Hugo 0.88.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>自动批量下载erlang官方邮件列表代码&nbsp;&ndash;&nbsp;Salman</title><link rel="stylesheet" href="/css/core.min.5a2fa48694c926b82b28b322049d9f0cc663e4195aff3976c7ccb8dd3e8c391bc1b94c0827d7b55e0537ec9c0a6e5d8e.css" integrity="sha384-Wi&#43;khpTJJrgrKLMiBJ2fDMZj5Bla/zl2x8y43T6MORvBuUwIJ9e1XgU37JwKbl2O"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="自动批量下载erlang官方邮件列表代码" /><body><section id="header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><img class="site logo" src="/images/head/128.128.png" alt /><span class="site name">Salman</span></a></span>
+        <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/">最新</a><a class="nav item" href="/about">我</a><a class="nav item" href="/categories/%e7%94%9f%e6%b4%bb/">生活</a><a class="nav item" href="/categories/%e6%8a%80%e6%9c%af">技术</a><a class="nav item" href="/categories/">分类</a><a class="nav item" href="/tags/">标签</a></nav></div></span></div><div class="site slogan"><span class="title">时间会告诉我们，简单的喜欢最长远，平凡的陪伴最心安，懂你的人最温暖。</span></div></section><section id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">自动批量下载erlang官方邮件列表代码</h1><p class="article date">2021年8月27日 10:49:19</p></section><article class="article markdown-body"><h3 id="代码如下">代码如下：</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-erlang" data-lang="erlang"><span class="p">-</span><span class="ni">module</span><span class="p">(</span><span class="n">pipermail</span><span class="p">).</span>
+<span class="p">-</span><span class="ni">export</span><span class="p">([</span><span class="n">start</span><span class="o">/</span><span class="mi">0</span><span class="p">]).</span>
+
+<span class="nf">start</span><span class="p">()</span> <span class="o">-&gt;</span>
+    <span class="nb">spawn</span><span class="p">(</span><span class="k">fun</span><span class="p">()</span> <span class="o">-&gt;</span>
+        <span class="nn">application</span><span class="p">:</span><span class="nf">start</span><span class="p">(</span><span class="n">crypto</span><span class="p">),</span>
+        <span class="nn">application</span><span class="p">:</span><span class="nf">start</span><span class="p">(</span><span class="n">asn1</span><span class="p">),</span>
+        <span class="nn">application</span><span class="p">:</span><span class="nf">start</span><span class="p">(</span><span class="n">public_key</span><span class="p">),</span>
+        <span class="nn">application</span><span class="p">:</span><span class="nf">start</span><span class="p">(</span><span class="n">ssl</span><span class="p">),</span>
+        <span class="nn">application</span><span class="p">:</span><span class="nf">start</span><span class="p">(</span><span class="n">inets</span><span class="p">),</span>
+        
+        <span class="p">{</span><span class="n">ok</span><span class="p">,{_,_,</span><span class="nv">Body</span><span class="p">}}</span> <span class="o">=</span> <span class="nn">httpc</span><span class="p">:</span><span class="nf">request</span><span class="p">(</span><span class="s">&#34;https://erlang.org/pipermail/erlang-questions/&#34;</span><span class="p">),</span>
+        <span class="p">{</span><span class="n">match</span><span class="p">,</span><span class="nv">Address_List</span><span class="p">}</span> <span class="o">=</span> <span class="nn">re</span><span class="p">:</span><span class="nf">run</span><span class="p">(</span><span class="nv">Body</span><span class="p">,</span><span class="s">&#34;&lt;A href=</span><span class="se">\&#34;</span><span class="s">(.*.gz)?</span><span class="se">\&#34;</span><span class="s">&gt;&#34;</span><span class="p">,[</span><span class="n">global</span><span class="p">,{</span><span class="n">capture</span><span class="p">,</span><span class="n">all</span><span class="p">,</span><span class="n">list</span><span class="p">}]),</span>
+        <span class="nv">Address_List_Length</span> <span class="o">=</span> <span class="nb">length</span><span class="p">(</span><span class="nv">Address_List</span><span class="p">),</span>
+        <span class="nb">put</span><span class="p">(</span><span class="n">cnt</span><span class="p">,</span><span class="mi">0</span><span class="p">),</span>
+        <span class="p">[</span>
+        <span class="k">begin</span>
+            <span class="p">{</span><span class="n">ok</span><span class="p">,{_,_,</span><span class="nv">File_Content</span><span class="p">}}</span> <span class="o">=</span> <span class="nn">httpc</span><span class="p">:</span><span class="nf">request</span><span class="p">(</span><span class="s">&#34;https://erlang.org/pipermail/erlang-questions/&#34;</span> <span class="o">++</span> <span class="nv">Address</span><span class="p">),</span>
+            <span class="nv">Unzip_File_Content</span> <span class="o">=</span> <span class="nn">zlib</span><span class="p">:</span><span class="nf">gunzip</span><span class="p">(</span><span class="nv">File_Content</span><span class="p">),</span>
+            <span class="nv">File_Name</span> <span class="o">=</span> <span class="nn">lists</span><span class="p">:</span><span class="nf">sublist</span><span class="p">(</span><span class="nv">Address</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">length</span><span class="p">(</span><span class="nv">Address</span><span class="p">)</span> <span class="o">-</span> <span class="mi">3</span><span class="p">),</span>
+            <span class="nn">file</span><span class="p">:</span><span class="nf">write_file</span><span class="p">(</span><span class="s">&#34;e:/snmp/d/&#34;</span> <span class="o">++</span> <span class="nv">File_Name</span><span class="p">,</span><span class="nv">Unzip_File_Content</span><span class="p">),</span>
+            <span class="nv">Cnt</span> <span class="o">=</span> <span class="nb">get</span><span class="p">(</span><span class="n">cnt</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="nb">put</span><span class="p">(</span><span class="n">cnt</span><span class="p">,</span><span class="nv">Cnt</span><span class="p">),</span>
+            <span class="nn">io</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&#34;</span><span class="si">~p</span><span class="s">/</span><span class="si">~p</span><span class="se">\t</span><span class="s">:</span><span class="si">~p~n</span><span class="s">&#34;</span><span class="p">,[</span><span class="nv">Cnt</span><span class="p">,</span><span class="nv">Address_List_Length</span><span class="p">,</span><span class="nv">Address</span><span class="p">])</span>
+        <span class="k">end</span> <span class="p">||</span> <span class="p">[_,</span><span class="nv">Address</span><span class="p">]</span> <span class="o">&lt;-</span> <span class="nv">Address_List</span><span class="p">]</span>
+    <span class="k">end</span><span class="p">).</span>
+</code></pre></div></article><section class="article labels"><a class="category" href=/categories/%E6%8A%80%E6%9C%AF/>技术</a><a class="category" href=/categories/erlang/>erlang</a><a class="tag" href=/tags/%E8%87%AA%E5%8A%A8/>自动</a><a class="tag" href=/tags/%E9%82%AE%E4%BB%B6/>邮件</a></section>
+</div>
+<div class="article bottom"><section class="article navigation"><p><a class="link" href="/posts/%E6%8A%80%E6%9C%AF/stock/163-%E8%82%A1%E7%A5%A8%E5%8E%86%E5%8F%B2%E6%95%B0%E6%8D%AE%E8%8E%B7%E5%8F%96%E5%9C%B0%E5%9D%80/"><span class="iconfont icon-article"></span>股票历史数据获取地址</a></p><p><a class="link" href="/posts/%E6%8A%80%E6%9C%AF/linux/%E8%A7%A3%E5%86%B3linux-vi-%E7%BC%96%E8%BE%91%E6%A8%A1%E5%BC%8F%E4%B8%AD%E4%B8%8A%E4%B8%8B%E5%B7%A6%E5%8F%B3%E5%85%89%E6%A0%87%E9%94%AE%E5%8F%98%E6%88%90abcd%E9%97%AE%E9%A2%98/"><span class="iconfont icon-article"></span>解决linux vi 编辑模式中，上下左右光标键变成ABCD问题</a></p></section></div></section><section id="footer"><div class="footer-wrap">
+    <p class="copyright">Copyright ©2021-2099 Salman.</p></div>
+</section><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/&#43;DiW/UqRcLbRjq" crossorigin="anonymous"><script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l&#43;B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd&#43;qj&#43;o24G5ZU2zJz" crossorigin="anonymous"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+            onload="renderMathInElement(document.body);"></script><script src="/js/prism.min.a3995e4e31ad988992f22cde2df66a5efbb7cf211dbaba67dbf4c96efd0883c728a2f2ae94db1dbbe9b72893e18a9ed6.js" integrity="sha384-o5leTjGtmImS8izeLfZqXvu3zyEdurpn2/TJbv0Ig8coovKulNsdu&#43;m3KJPhip7W"></script><script>
+    var _hmt = _hmt || [];
+    (function() {
+        var hm = document.createElement("script");
+        hm.src = "https://hm.baidu.com/hm.js?2b59024f651488c102f34ca466295b1d";
+        var s = document.getElementsByTagName("script")[0]; 
+        s.parentNode.insertBefore(hm, s);
+    })();
+</script>    </body>
+
+</html>

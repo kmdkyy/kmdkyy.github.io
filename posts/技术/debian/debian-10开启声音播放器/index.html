@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh"><meta charset="utf-8"><meta name="generator" content="Hugo 0.88.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>开启声音，播放器&nbsp;&ndash;&nbsp;Salman</title><link rel="stylesheet" href="/css/core.min.5a2fa48694c926b82b28b322049d9f0cc663e4195aff3976c7ccb8dd3e8c391bc1b94c0827d7b55e0537ec9c0a6e5d8e.css" integrity="sha384-Wi&#43;khpTJJrgrKLMiBJ2fDMZj5Bla/zl2x8y43T6MORvBuUwIJ9e1XgU37JwKbl2O"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="开启声音，播放器" /><body><section id="header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><img class="site logo" src="/images/head/128.128.png" alt /><span class="site name">Salman</span></a></span>
+        <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/">最新</a><a class="nav item" href="/about">我</a><a class="nav item" href="/categories/%e7%94%9f%e6%b4%bb/">生活</a><a class="nav item" href="/categories/%e6%8a%80%e6%9c%af">技术</a><a class="nav item" href="/categories/">分类</a><a class="nav item" href="/tags/">标签</a></nav></div></span></div><div class="site slogan"><span class="title">时间会告诉我们，简单的喜欢最长远，平凡的陪伴最心安，懂你的人最温暖。</span></div></section><section id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">开启声音，播放器</h1><p class="article date">2021年8月27日 10:49:19</p></section><article class="article markdown-body"><h4 id="开启声音">开启声音</h4>
+<p><em>安装alsa-utils</em></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">apt-get install alsa-utils
+</code></pre></div><p><em>设置音量，保存</em></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">alsactl store
+</code></pre></div><p><em>设置音量</em></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">amixer <span class="nb">set</span> Master 85%
+</code></pre></div><p><em>初始化</em></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">alsactl init
+</code></pre></div><h4 id="安装播放器">安装播放器</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">apt-get install sox
+</code></pre></div><p><em>安装所有支持的格式</em></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">apt-get install sox libsox-fmt-all
+</code></pre></div><p><em>播放系统中所有音频文件，我们可以采用这个命令：</em></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">play *mp3
+</code></pre></div><p><em>如果要播放某个特定的文件，那么采用这个命令：</em></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">play alarm.wav
+</code></pre></div></article><section class="article labels"><a class="category" href=/categories/%E6%8A%80%E6%9C%AF/>技术</a><a class="category" href=/categories/linux/>Linux</a><a class="tag" href=/tags/debian/>debian</a><a class="tag" href=/tags/%E5%BD%B1%E9%9F%B3/>影音</a></section>
+</div>
+<div class="article bottom"><section class="article navigation"><p><a class="link" href="/posts/%E6%8A%80%E6%9C%AF/debian/debian-10%E5%B0%86%E4%B8%AD%E6%96%87%E6%94%B9%E4%B8%BA%E8%8B%B1%E6%96%87/"><span class="iconfont icon-article"></span>将中文改为英文</a></p><p><a class="link" href="/posts/%E6%8A%80%E6%9C%AF/debian/debian10%E5%BC%80%E6%9C%BA%E5%90%8E%E6%88%96%E7%99%BB%E5%BD%95%E5%90%8E%E8%BF%90%E8%A1%8C%E6%8C%87%E5%AE%9A%E7%A8%8B%E5%BA%8F/"><span class="iconfont icon-article"></span>开机后或登录后运行指定程序</a></p></section></div></section><section id="footer"><div class="footer-wrap">
+    <p class="copyright">Copyright ©2021-2099 Salman.</p></div>
+</section><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/&#43;DiW/UqRcLbRjq" crossorigin="anonymous"><script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l&#43;B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd&#43;qj&#43;o24G5ZU2zJz" crossorigin="anonymous"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+            onload="renderMathInElement(document.body);"></script><script src="/js/prism.min.a3995e4e31ad988992f22cde2df66a5efbb7cf211dbaba67dbf4c96efd0883c728a2f2ae94db1dbbe9b72893e18a9ed6.js" integrity="sha384-o5leTjGtmImS8izeLfZqXvu3zyEdurpn2/TJbv0Ig8coovKulNsdu&#43;m3KJPhip7W"></script><script>
+    var _hmt = _hmt || [];
+    (function() {
+        var hm = document.createElement("script");
+        hm.src = "https://hm.baidu.com/hm.js?2b59024f651488c102f34ca466295b1d";
+        var s = document.getElementsByTagName("script")[0]; 
+        s.parentNode.insertBefore(hm, s);
+    })();
+</script>    </body>
+
+</html>

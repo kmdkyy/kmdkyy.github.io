@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh"><meta charset="utf-8"><meta name="generator" content="Hugo 0.88.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>一些代码技巧&nbsp;&ndash;&nbsp;Salman</title><link rel="stylesheet" href="/css/core.min.5a2fa48694c926b82b28b322049d9f0cc663e4195aff3976c7ccb8dd3e8c391bc1b94c0827d7b55e0537ec9c0a6e5d8e.css" integrity="sha384-Wi&#43;khpTJJrgrKLMiBJ2fDMZj5Bla/zl2x8y43T6MORvBuUwIJ9e1XgU37JwKbl2O"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="一些代码技巧" /><body><section id="header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><img class="site logo" src="/images/head/128.128.png" alt /><span class="site name">Salman</span></a></span>
+        <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/">最新</a><a class="nav item" href="/about">我</a><a class="nav item" href="/categories/%e7%94%9f%e6%b4%bb/">生活</a><a class="nav item" href="/categories/%e6%8a%80%e6%9c%af">技术</a><a class="nav item" href="/categories/">分类</a><a class="nav item" href="/tags/">标签</a></nav></div></span></div><div class="site slogan"><span class="title">时间会告诉我们，简单的喜欢最长远，平凡的陪伴最心安，懂你的人最温暖。</span></div></section><section id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">一些代码技巧</h1><p class="article date">2021年8月27日 10:49:19</p></section><article class="article markdown-body"><p>    可以在代码中查询Environment的Is64BitOperatingSystem属性，判断是否在64位Windows上运行。还可以查询Environment的Is64BitProcess属性，判断是否在64位地址空间中运行。</p>
+<hr>
+<p>    可以使用System.Runtime.ProfileOptimization类，该类导致CLR检查程序运行时哪些方法被JIT编译，结果被记录到一个文件。程序再次启动时，如果是在多CPU机器上运行，就用其它线程并发编译这些方法。这使应用程序运行得更快，因为多个方法并发编译，而且是在应用程序初始化时编译，面不是在用户和程序交互时才“即时”编译。</p>
+<hr>
+<p>    在代码中调用System.Diagnostics.FileVersionInfo.GetVersionInfo获取文件版本信息。
+    生成程序集时，应该使用定制特性设置各种版本资源字段，如：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c#" data-lang="c#"><span class="k">using</span> <span class="nn">System.Reflection</span><span class="p">;</span>
+<span class="na">[assembly:AssemblyTitle(&#34;MultiFileLibrary.dll&#34;)]</span>
+<span class="na">[assembly:AssemblyDescription(&#34;MultiFileLibrary&#34;)]</span>
+<span class="na">[assembly:AssemblyCompany(&#34;Txb&#34;)]</span>
+<span class="na">[assembly:AssemblyProduct(&#34;test&#34;)]</span>
+<span class="na">[assembly:AssemblyCopyright(&#34;Copyright (c) txb 2021&#34;)]</span>
+<span class="na">[assembly:AssemblyTrademark(&#34;MultiFileLibrary&#34;)]</span>
+<span class="na">[assembly:AssemblyVersion(&#34;3.0.0.0&#34;)]</span>
+<span class="na">[assembly:AssemblyFileVersion(&#34;1.0.0.0&#34;)]</span>
+<span class="na">[assembly:AssemblyInformationalVersion(&#34;2.0.0.0&#34;)]</span>
+<span class="na">[assembly:AssemblyCulture(&#34;zh-CN&#34;)]</span>
+</code></pre></div><hr>
+<p>    可利用辅助类System.Reflection.AssemblyName轻松构造程序集名称，并获取程序集名称的各个组成部分。该类提供了几个公共实例属性，比如CultureInfo，FullName，KeyPair，Name和Version。还提供了几个公共实例方法，比如GetpublicKey，GetPublicKeyToken，SetPublicKey和SetPublicKeyToken。</p>
+<hr>
+<p>    运行时解析类型引用时有任何错误（找不到文件、文件无法加载、哈希值不匹配等）都会抛出异常：
+可以向System.AppDomain的AssemblyResolve,ReflectionOnlyAssemblyResolve和TypeResolve事件注册回调方法。在回调方法中执行解决绑定问题的代码，使应用程序不抛出异常而继续运行。</p>
+<hr>
+<p>    CLR提供了将类型（类、结构、枚举、接口或委托）从一个程序集移动到另一个程序的功能。</p>
+<hr>
+<p>    CLR提供了名为System.Runtime.CompilerServices.TypeForwardedToAttribute的特性，可将它应用于原始程序集，向该特性传递一个System.Type类型的参数，指出应用程序要使用的新类型。由于TypeForwardedToAttribute构造器获取的是Type，所以包含该特性的程序集要依赖于现在定义类型的程序集。</p>
+<hr>
+<p>    为了使用这个功能，还要向新程序集中的类型应用名为System.Runtime.CompilerServices.TypeForwardedFromAttribute的特性，向该特性传递一个字符串指出定义类型的旧程序集全名。由于TypeForwardedFromAttribute构造器获取的是String，所以包含该特性的程序集不依赖于过去定义类型的程序集。</p>
+<hr>
+<p>例如：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c#" data-lang="c#"><span class="k">if</span><span class="p">(</span><span class="n">o</span> <span class="k">is</span> <span class="n">ClassType</span><span class="p">){</span>
+	<span class="n">ClassType</span> <span class="n">e</span> <span class="p">=</span> <span class="p">(</span><span class="n">ClassType</span><span class="p">)</span> <span class="n">o</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div><p>    CLR类型检查增强了安全性，但对性能造成影响，因为CLR必须判断变量引用对象的实际类型，必须遍历继承层次结构，用每个基类型去核对指定变量的类型。使用as操作符，然后对as操作符的结果判断是否为空（这时候比检查类型快得多），可以简化代码，也可以提高性能。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c#" data-lang="c#"><span class="n">ClassType</span> <span class="n">e</span> <span class="p">=</span> <span class="n">o</span> <span class="k">as</span> <span class="n">ClassType</span><span class="p">;</span>
+<span class="k">if</span><span class="p">(</span><span class="n">e</span> <span class="p">!=</span> <span class="k">null</span><span class="p">){</span>
+	<span class="c1">//其它操作
+</span><span class="c1"></span><span class="p">}</span>
+</code></pre></div><hr>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c#" data-lang="c#"><span class="n">Byte</span> <span class="n">b</span> <span class="p">=</span> <span class="m">100</span><span class="p">;</span>
+<span class="n">b</span> <span class="p">=</span> <span class="p">(</span><span class="n">Byte</span><span class="p">)</span> <span class="p">(</span><span class="n">b</span> <span class="p">+</span> <span class="m">200</span><span class="p">);</span>
+</code></pre></div><p>    以上运算过程中，第一步要求所有操作数扩大为32位，当结果300存回变量b前必须转型为Byte，所以要求显示转型操作。</p>
+<hr>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-c#" data-lang="c#"><span class="k">void</span> <span class="n">M</span><span class="p">(</span><span class="kt">byte</span> <span class="n">b</span><span class="p">);</span>
+<span class="k">checked</span><span class="p">{</span>
+	<span class="n">M</span><span class="p">(</span><span class="m">300</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div><p>    checked、unchecked唯一作用就是决定生成哪个版本的IL指令，以上方法不会抛出OverflowException异常，除非指定编译器开关/checked+。</p>
+<hr>
+<p>    System.Decimal类型不属于基元类型，没有相应的IL指令，checked、unchecked及编译器/checked+开关都失去作用，对Decimal执行不安全运行都会抛出OverflowException异常。</p>
+<hr>
+<p>    System.BigInteger类型在内部使用UInt32数组表示任意大小整数，它的值没有上下限，因此对BigInteger的运算永远不会抛出OverflowException异常，但可能会抛出OutOfMemoryException异常。</p>
+</article><section class="article labels"><a class="category" href=/categories/%E6%8A%80%E6%9C%AF/>技术</a><a class="category" href=/categories/c-sharp/>C Sharp</a><a class="tag" href=/tags/%E4%BB%A3%E7%A0%81%E6%8A%80%E5%B7%A7/>代码技巧</a></section>
+</div>
+<div class="article bottom"><section class="article navigation"><p><a class="link" href="/posts/%E6%8A%80%E6%9C%AF/js/nodejs%E4%B8%8Eelectron%E5%9C%A8windows%E4%B8%8B%E6%90%AD%E5%BB%BA/"><span class="iconfont icon-article"></span>Windows下搭建nodejs与Electron开发环境</a></p><p><a class="link" href="/posts/%E6%8A%80%E6%9C%AF/debian/%E4%BF%AE%E6%94%B9debian-10%E6%9B%B4%E6%96%B0%E6%BA%90/"><span class="iconfont icon-article"></span>修改debian 10更新源</a></p></section></div></section><section id="footer"><div class="footer-wrap">
+    <p class="copyright">Copyright ©2021-2099 Salman.</p></div>
+</section><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/&#43;DiW/UqRcLbRjq" crossorigin="anonymous"><script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l&#43;B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd&#43;qj&#43;o24G5ZU2zJz" crossorigin="anonymous"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+            onload="renderMathInElement(document.body);"></script><script src="/js/prism.min.a3995e4e31ad988992f22cde2df66a5efbb7cf211dbaba67dbf4c96efd0883c728a2f2ae94db1dbbe9b72893e18a9ed6.js" integrity="sha384-o5leTjGtmImS8izeLfZqXvu3zyEdurpn2/TJbv0Ig8coovKulNsdu&#43;m3KJPhip7W"></script><script>
+    var _hmt = _hmt || [];
+    (function() {
+        var hm = document.createElement("script");
+        hm.src = "https://hm.baidu.com/hm.js?2b59024f651488c102f34ca466295b1d";
+        var s = document.getElementsByTagName("script")[0]; 
+        s.parentNode.insertBefore(hm, s);
+    })();
+</script>    </body>
+
+</html>

@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh"><meta charset="utf-8"><meta name="generator" content="Hugo 0.88.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>Erlang RSA 加密与解密&nbsp;&ndash;&nbsp;Salman</title><link rel="stylesheet" href="/css/core.min.5a2fa48694c926b82b28b322049d9f0cc663e4195aff3976c7ccb8dd3e8c391bc1b94c0827d7b55e0537ec9c0a6e5d8e.css" integrity="sha384-Wi&#43;khpTJJrgrKLMiBJ2fDMZj5Bla/zl2x8y43T6MORvBuUwIJ9e1XgU37JwKbl2O"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Erlang RSA 加密与解密" /><body><section id="header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><img class="site logo" src="/images/head/128.128.png" alt /><span class="site name">Salman</span></a></span>
+        <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/">最新</a><a class="nav item" href="/about">我</a><a class="nav item" href="/categories/%e7%94%9f%e6%b4%bb/">生活</a><a class="nav item" href="/categories/%e6%8a%80%e6%9c%af">技术</a><a class="nav item" href="/categories/">分类</a><a class="nav item" href="/tags/">标签</a></nav></div></span></div><div class="site slogan"><span class="title">时间会告诉我们，简单的喜欢最长远，平凡的陪伴最心安，懂你的人最温暖。</span></div></section><section id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">Erlang RSA 加密与解密</h1><p class="article date">2019年6月27日 10:49:19</p></section><article class="article markdown-body"><p>    rsa是非对称加密算法，有公开秘钥（publickey）和私有密钥（privatekey），如果用公开密钥对数据进行加密，只有用对应的私有密钥才能解密；如果用私有密钥对数据进行加密，那么只有用对应的公开密钥才能解密。在用户账号登录这块就防止密码泄露，除非秘钥泄露。</p>
+<p>    在erlang使用rsa主要需要public_key模块，所有需要引入相关头文件。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-erlang" data-lang="erlang"><span class="p">-</span><span class="ni">include_lib</span><span class="p">(</span><span class="s">&#34;public_key/include/public_key.hrl&#34;</span><span class="p">).</span>
+</code></pre></div><h3 id="生成公钥秘钥">生成公钥秘钥</h3>
+<p>    让客户端每次登陆时都请求服务端生成新的公钥秘钥，也把生成结果放在socketpid的进程字典里，断开socket相当于重置。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-erlang" data-lang="erlang"><span class="nf">set_private_key</span><span class="p">()</span> <span class="o">-&gt;</span>
+<span class="c">%%获取私钥
+</span><span class="c"></span>    <span class="nl">#&#39;RSAPrivateKey&#39;</span><span class="p">{</span><span class="n">modulus</span><span class="o">=</span><span class="nv">Modulus</span><span class="p">,</span> <span class="n">publicExponent</span><span class="o">=</span><span class="nv">PublicExponent</span><span class="p">}</span> <span class="o">=</span> <span class="nv">PrivateKey</span> <span class="o">=</span> <span class="nn">public_key</span><span class="p">:</span><span class="nf">generate_key</span><span class="p">({</span><span class="n">rsa</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="mi">65537</span><span class="p">}),</span>
+<span class="c">%%获取公钥
+</span><span class="c"></span>    <span class="nv">PublicKey</span> <span class="o">=</span> <span class="nl">#&#39;RSAPublicKey&#39;</span><span class="p">{</span><span class="n">modulus</span><span class="o">=</span><span class="nv">Modulus</span><span class="p">,</span> <span class="n">publicExponent</span><span class="o">=</span><span class="nv">PublicExponent</span><span class="p">},</span>
+    <span class="nb">put</span><span class="p">(</span><span class="n">rsa_private_key</span><span class="p">,</span> <span class="nv">PrivateKey</span><span class="p">),</span>
+    <span class="nb">put</span><span class="p">(</span><span class="n">rsa_public_key</span><span class="p">,</span> <span class="nv">PublicKey</span><span class="p">),</span>
+    <span class="p">{</span><span class="nv">PrivateKey</span><span class="p">,</span> <span class="nv">PublicKey</span><span class="p">}.</span>
+</code></pre></div><p>    注意1024是密钥长度，目前主流可选值：1024、2048、3072、4096&hellip;低于1024bit的密钥已经不建议使用（安全问题）。65537是公钥指数，是随意选的质素，但目前行业上公钥指数普遍选的都是65537。</p>
+<p><em>RSA加密</em></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-erlang" data-lang="erlang"><span class="nf">en_rsa</span><span class="p">(</span><span class="nv">BinData</span><span class="p">)</span> <span class="o">-&gt;</span>
+<span class="c">%%公钥加密
+</span><span class="c"></span>    <span class="nv">PublicKey</span> <span class="o">=</span> <span class="nb">get</span><span class="p">(</span><span class="n">rsa_public_key</span><span class="p">),</span>
+    <span class="nv">Cipher</span> <span class="o">=</span> <span class="nn">public_key</span><span class="p">:</span><span class="nf">encrypt_public</span><span class="p">(</span><span class="nv">BinData</span><span class="p">,</span> <span class="nv">PublicKey</span><span class="p">),</span>
+    <span class="nv">Cipher</span><span class="p">.</span>
+</code></pre></div><p><em>RSA解密</em></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-erlang" data-lang="erlang"><span class="nf">de_rsa</span><span class="p">(</span><span class="nv">BinData</span><span class="p">)</span> <span class="o">-&gt;</span>
+    <span class="nv">PrivateKey</span> <span class="o">=</span> <span class="nb">get</span><span class="p">(</span><span class="n">rsa_private_key</span><span class="p">),</span>
+<span class="c">%%私钥解密
+</span><span class="c"></span>    <span class="nv">Result</span> <span class="o">=</span> <span class="nn">public_key</span><span class="p">:</span><span class="nf">decrypt_private</span><span class="p">(</span><span class="nv">BinData</span><span class="p">,</span> <span class="nv">PrivateKey</span><span class="p">),</span>
+    <span class="nv">Result</span><span class="p">.</span>
+</code></pre></div><h3 id="公钥转可视化字符">公钥转可视化字符</h3>
+<p>    由于生成的公钥是erlang Record的结构，客户端无法识别，所以需要转化</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-erlang" data-lang="erlang"><span class="c">%%公钥转字符串
+</span><span class="c"></span><span class="nf">key_to_list</span><span class="p">(</span><span class="nv">PublicKey</span><span class="p">)</span> <span class="o">-&gt;</span>
+<span class="nb">binary_to_list</span><span class="p">(</span><span class="nn">public_key</span><span class="p">:</span><span class="nf">pem_encode</span><span class="p">([</span><span class="nn">public_key</span><span class="p">:</span><span class="nf">pem_entry_encode</span><span class="p">(</span><span class="n">&#39;SubjectPublicKeyInfo&#39;</span><span class="p">,</span><span class="nv">PublicKey</span><span class="p">)])).</span>
+</code></pre></div><h3 id="例">例：</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-erlang" data-lang="erlang"><span class="nf">rr</span><span class="p">(</span><span class="s">&#34;C:/Program Files/erl10.6/lib/public_key-1.7.1/include/public_key.hrl&#34;</span><span class="p">).</span> 
+
+<span class="c">%生成密钥
+</span><span class="c"></span><span class="nl">#&#39;RSAPrivateKey&#39;</span><span class="p">{</span><span class="n">modulus</span><span class="o">=</span><span class="nv">Modulus</span><span class="p">,</span> <span class="n">publicExponent</span><span class="o">=</span><span class="nv">PublicExponent</span><span class="p">}</span> <span class="o">=</span> <span class="nv">PrivateKey</span> <span class="o">=</span> <span class="nn">public_key</span><span class="p">:</span><span class="nf">generate_key</span><span class="p">({</span><span class="n">rsa</span><span class="p">,</span> <span class="mi">4096</span><span class="p">,</span> <span class="mi">99997873</span><span class="p">}).</span> 
+<span class="nv">PublicKey</span> <span class="o">=</span> <span class="nl">#&#39;RSAPublicKey&#39;</span><span class="p">{</span><span class="n">modulus</span><span class="o">=</span><span class="nv">Modulus</span><span class="p">,</span> <span class="n">publicExponent</span><span class="o">=</span><span class="nv">PublicExponent</span><span class="p">}.</span>
+
+<span class="nv">BinData</span> <span class="o">=</span> <span class="o">&lt;&lt;</span><span class="s">&#34;e90fa&#34;</span><span class="o">&gt;&gt;</span> 
+
+<span class="c">%加密、解密
+</span><span class="c"></span><span class="nn">public_key</span><span class="p">:</span><span class="nf">encrypt_public</span><span class="p">(</span><span class="nv">BinData</span><span class="p">,</span> <span class="nv">PublicKey</span><span class="p">).</span>
+<span class="nn">public_key</span><span class="p">:</span><span class="nf">decrypt_private</span><span class="p">(</span><span class="nv">BinData</span><span class="p">,</span> <span class="nv">PrivateKey</span><span class="p">).</span>
+
+
+<span class="c">%密钥转为字符串
+</span><span class="c"></span><span class="nv">P</span> <span class="o">=</span> <span class="nb">binary_to_list</span><span class="p">(</span><span class="nn">public_key</span><span class="p">:</span><span class="nf">pem_encode</span><span class="p">([</span><span class="nn">public_key</span><span class="p">:</span><span class="nf">pem_entry_encode</span><span class="p">(</span><span class="n">&#39;SubjectPublicKeyInfo&#39;</span><span class="p">,</span><span class="nv">PublicKey</span><span class="p">)])).</span>
+<span class="nv">P</span> <span class="o">=</span> <span class="nb">binary_to_list</span><span class="p">(</span><span class="nn">public_key</span><span class="p">:</span><span class="nf">pem_encode</span><span class="p">([</span><span class="nn">public_key</span><span class="p">:</span><span class="nf">pem_entry_encode</span><span class="p">(</span><span class="n">&#39;PrivateKeyInfo&#39;</span><span class="p">,</span><span class="nv">PrivateKey</span><span class="p">)])).</span>
+
+<span class="c">%字符串转为密钥
+</span><span class="c"></span><span class="nv">C</span> <span class="o">=</span> <span class="nb">list_to_binary</span><span class="p">(</span><span class="nv">P</span><span class="p">).</span>
+
+<span class="p">[</span><span class="nv">T</span><span class="p">]</span> <span class="o">=</span> <span class="nn">public_key</span><span class="p">:</span><span class="nf">pem_decode</span><span class="p">(</span><span class="nv">C</span><span class="p">).</span>
+
+<span class="nn">public_key</span><span class="p">:</span><span class="nf">pem_entry_decode</span><span class="p">(</span><span class="nv">T</span><span class="p">).</span>
+</code></pre></div><h3 id="示例代码">示例代码:</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-erlang" data-lang="erlang"><span class="c">%用RSA加密的文件最大字节数。
+</span><span class="c"></span><span class="p">-</span><span class="ni">define</span><span class="p">(</span><span class="no">RSA_ENCRYPT_FILE_MAX_SIZE</span><span class="p">,</span><span class="mi">1024</span><span class="o">*</span><span class="mi">2</span><span class="p">).</span>
+<span class="c">%RSA密钥长度
+</span><span class="c"></span><span class="p">-</span><span class="ni">define</span><span class="p">(</span><span class="no">RAS_KEY_SIZE</span><span class="p">,</span> <span class="mi">4096</span><span class="p">).</span>
+<span class="c">%RSA质数
+</span><span class="c"></span><span class="p">-</span><span class="ni">define</span><span class="p">(</span><span class="no">PRIMENUMBER</span><span class="p">,</span><span class="mi">99997873</span><span class="p">).</span>
+
+<span class="c">%AES密钥长度
+</span><span class="c"></span><span class="p">-</span><span class="ni">define</span><span class="p">(</span><span class="no">AES_KEY_SIZE</span><span class="p">,</span> <span class="mi">16</span><span class="p">).</span>
+<span class="c">%AES向量
+</span><span class="c"></span><span class="p">-</span><span class="ni">define</span> <span class="p">(</span><span class="no">AES_IVEC</span><span class="p">,</span><span class="o">&lt;&lt;</span><span class="s">&#34;KjsU74&amp;2)$so/&gt;ks&#34;</span><span class="o">&gt;&gt;</span><span class="p">).</span>
+<span class="c">%AES一次加密字节数
+</span><span class="c"></span><span class="p">-</span><span class="ni">define</span><span class="p">(</span><span class="no">AES_BUFFER_SIZE</span><span class="p">,</span> <span class="mi">1024</span><span class="p">).</span>
+
+<span class="c">%公钥文件名
+</span><span class="c"></span><span class="p">-</span><span class="ni">define</span><span class="p">(</span><span class="no">PUBLIC_KEY_FILE_NAME</span><span class="p">,</span><span class="s">&#34;public&#34;</span><span class="p">).</span>
+<span class="c">%私钥文件名
+</span><span class="c"></span><span class="p">-</span><span class="ni">define</span><span class="p">(</span><span class="no">PRIVATE_KEY_FILE_NAME</span><span class="p">,</span><span class="s">&#34;private&#34;</span><span class="p">).</span>
+
+<span class="c">%加密文件标识长度
+</span><span class="c"></span><span class="p">-</span><span class="ni">define</span><span class="p">(</span><span class="no">HEADER_SIZE</span><span class="p">,</span><span class="mi">32</span><span class="p">).</span>
+<span class="c">%AES文件头部加密标识
+</span><span class="c"></span><span class="p">-</span><span class="ni">define</span><span class="p">(</span><span class="no">AES_ENCRYPTED_FILE_HEADER</span><span class="p">,</span><span class="o">&lt;&lt;</span><span class="s">&#34;e27soefk.&lt;.f9d0els--.d;=ewal:aAe&#34;</span><span class="o">&gt;&gt;</span><span class="p">).</span>
+<span class="c">%RSA文件头部加密标识
+</span><span class="c"></span><span class="p">-</span><span class="ni">define</span><span class="p">(</span><span class="no">RSA_ENCRYPTED_FILE_HEADER</span><span class="p">,</span><span class="o">&lt;&lt;</span><span class="s">&#34;bo*dfjqLw823;hjadf?=-{j3r98afjai&#34;</span><span class="o">&gt;&gt;</span><span class="p">).</span>
+
+<span class="c">%一次最多同时运行加解密进程数量
+</span><span class="c"></span><span class="p">-</span><span class="ni">define</span><span class="p">(</span><span class="no">MAX_PROCESS_NUMBER</span><span class="p">,</span><span class="mi">8</span><span class="p">)..</span>
+
+
+
+<span class="p">-</span><span class="ni">module</span><span class="p">(</span><span class="n">encoder</span><span class="p">).</span>
+<span class="p">-</span><span class="ni">export</span><span class="p">([</span><span class="n">generate</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span><span class="n">encode</span><span class="o">/</span><span class="mi">3</span><span class="p">,</span><span class="n">decode</span><span class="o">/</span><span class="mi">4</span><span class="p">,</span><span class="n">help</span><span class="o">/</span><span class="mi">0</span><span class="p">]).</span>
+
+<span class="p">-</span><span class="ni">export</span><span class="p">([</span><span class="n">random_aes_key</span><span class="o">/</span><span class="mi">0</span><span class="p">]).</span>
+
+<span class="p">-</span><span class="ni">include</span><span class="p">(</span><span class="s">&#34;public_key.hrl&#34;</span><span class="p">).</span>
+<span class="p">-</span><span class="ni">include</span><span class="p">(</span><span class="s">&#34;defined.hrl&#34;</span><span class="p">).</span>
+
+
+
+
+
+<span class="c">%加密目录
+</span><span class="c"></span><span class="nf">encode</span><span class="p">(</span><span class="nv">Source_Path</span><span class="p">,</span><span class="nv">Destination_Path</span><span class="p">,</span><span class="n">path</span><span class="p">)</span> <span class="o">-&gt;</span>
+	<span class="nb">process_flag</span><span class="p">(</span><span class="n">trap_exit</span><span class="p">,</span><span class="n">true</span><span class="p">),</span>
+	<span class="nv">Source_File_Name_List</span> <span class="o">=</span> <span class="nn">filelib</span><span class="p">:</span><span class="nf">fold_files</span><span class="p">(</span><span class="nv">Source_Path</span><span class="p">,</span> <span class="s">&#34;.*&#34;</span><span class="p">,</span> <span class="n">true</span><span class="p">,</span> <span class="k">fun</span><span class="p">(</span><span class="nv">F</span><span class="p">,</span> <span class="nv">AccIn</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="p">[</span><span class="nv">F</span> <span class="p">|</span> <span class="nv">AccIn</span><span class="p">]</span> <span class="k">end</span><span class="p">,</span> <span class="p">[]),</span>
+	<span class="nv">Total</span> <span class="o">=</span> <span class="nb">length</span><span class="p">(</span><span class="nv">Source_File_Name_List</span><span class="p">),</span>
+	<span class="nv">Counter</span> <span class="o">=</span> <span class="nb">spawn_link</span><span class="p">(</span><span class="k">fun</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">counter</span><span class="p">(</span><span class="nv">Total</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span> <span class="k">end</span><span class="p">),</span>
+	<span class="k">if</span>
+		<span class="nb">length</span><span class="p">(</span><span class="nv">Source_File_Name_List</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">-&gt;</span>
+			<span class="n">encode</span><span class="p">(</span><span class="nv">Source_Path</span><span class="p">,</span><span class="nv">Destination_Path</span><span class="p">,</span><span class="nv">Source_File_Name_List</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="nv">Counter</span><span class="p">),</span>
+			<span class="n">ok</span><span class="p">;</span>
+		<span class="n">true</span> <span class="o">-&gt;</span>
+			<span class="n">ok</span>
+	<span class="k">end</span><span class="p">;</span>
+<span class="c">%加密文件
+</span><span class="c"></span><span class="nf">encode</span><span class="p">(</span><span class="nv">Source_File_Name</span><span class="p">,</span><span class="nv">Destination_File_Name</span><span class="p">,</span><span class="n">file</span><span class="p">)</span> <span class="o">-&gt;</span>
+	<span class="p">{</span><span class="n">ok</span><span class="p">,</span><span class="nv">Source_File</span><span class="p">}</span> <span class="o">=</span> <span class="nn">file</span><span class="p">:</span><span class="nf">open</span><span class="p">(</span><span class="nv">Source_File_Name</span><span class="p">,[</span><span class="n">raw</span><span class="p">,</span><span class="n">binary</span><span class="p">]),</span>
+
+	<span class="p">{</span><span class="n">ok</span><span class="p">,</span><span class="nv">Destination_File</span><span class="p">}</span> <span class="o">=</span> <span class="nn">file</span><span class="p">:</span><span class="nf">open</span><span class="p">(</span><span class="nv">Destination_File_Name</span><span class="p">,[</span><span class="n">write</span><span class="p">,</span><span class="n">raw</span><span class="p">]),</span>
+
+	<span class="c">%读取公钥
+</span><span class="c"></span>	<span class="nv">Public_Key_File_Name</span> <span class="o">=</span> <span class="nn">lists</span><span class="p">:</span><span class="nf">flatten</span><span class="p">(</span><span class="nn">io_lib</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&#34;</span><span class="si">~s</span><span class="s">/</span><span class="si">~s</span><span class="s">&#34;</span><span class="p">,[</span><span class="n">application_path</span><span class="p">(),</span><span class="o">?</span><span class="nv">PUBLIC_KEY_FILE_NAME</span><span class="p">])),</span>
+	<span class="p">{</span><span class="n">ok</span><span class="p">,</span><span class="nv">Public_Key_Binary</span><span class="p">}</span> <span class="o">=</span> <span class="nn">file</span><span class="p">:</span><span class="nf">read_file</span><span class="p">(</span><span class="nv">Public_Key_File_Name</span><span class="p">),</span>
+	<span class="p">[</span><span class="nv">Public_Key_Info</span><span class="p">]</span> <span class="o">=</span> <span class="nn">public_key</span><span class="p">:</span><span class="nf">pem_decode</span><span class="p">(</span><span class="nv">Public_Key_Binary</span><span class="p">),</span>
+	<span class="nv">Public_Key</span> <span class="o">=</span> <span class="nn">public_key</span><span class="p">:</span><span class="nf">pem_entry_decode</span><span class="p">(</span><span class="nv">Public_Key_Info</span><span class="p">),</span>
+
+	<span class="c">%获取文件长度
+</span><span class="c"></span>	<span class="p">{</span><span class="n">ok</span><span class="p">,</span><span class="nv">File_Size</span><span class="p">}</span> <span class="o">=</span> <span class="nn">file</span><span class="p">:</span><span class="nf">position</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">,</span><span class="n">eof</span><span class="p">),</span>
+	<span class="nn">file</span><span class="p">:</span><span class="nf">position</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">,</span><span class="n">bof</span><span class="p">),</span>
+
+	<span class="k">case</span> <span class="n">encrypted_type</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">)</span> <span class="k">of</span>
+		<span class="n">no_encrypted</span> <span class="o">-&gt;</span>
+			<span class="k">if</span>
+				<span class="c">%小于用RSA加密的文件最大字节数，则采用RSA加密
+</span><span class="c"></span>				<span class="nv">File_Size</span> <span class="o">=&lt;</span> <span class="o">?</span><span class="nv">RSA_ENCRYPT_FILE_MAX_SIZE</span> <span class="o">-&gt;</span>
+					<span class="nn">file</span><span class="p">:</span><span class="nf">write</span><span class="p">(</span><span class="nv">Destination_File</span><span class="p">,</span><span class="o">?</span><span class="nv">RSA_ENCRYPTED_FILE_HEADER</span><span class="p">),</span>
+					<span class="n">encrypt</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">,</span><span class="nv">Destination_File</span><span class="p">,</span><span class="nv">Public_Key</span><span class="p">,</span><span class="n">rsa</span><span class="p">);</span>
+
+				<span class="c">%大于用RSA加密的文件最大字节数，则采用AES加密
+</span><span class="c"></span>				<span class="n">true</span> <span class="o">-&gt;</span>
+					<span class="nv">Aes_Key_Info</span> <span class="o">=</span> <span class="n">random_aes_key</span><span class="p">(),</span>
+					<span class="nn">file</span><span class="p">:</span><span class="nf">write</span><span class="p">(</span><span class="nv">Destination_File</span><span class="p">,</span><span class="o">?</span><span class="nv">AES_ENCRYPTED_FILE_HEADER</span><span class="p">),</span>
+					<span class="n">write_aes_key</span><span class="p">(</span><span class="nv">Destination_File</span><span class="p">,</span><span class="nv">Public_Key</span><span class="p">,</span><span class="nv">Aes_Key_Info</span><span class="p">),</span>
+					<span class="n">encrypt</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">,</span><span class="nv">Destination_File</span><span class="p">,</span><span class="nv">Aes_Key_Info</span><span class="p">,</span><span class="n">aes</span><span class="p">)</span>
+			<span class="k">end</span><span class="p">;</span>
+		<span class="p">_</span> <span class="o">-&gt;</span>
+			<span class="nn">file</span><span class="p">:</span><span class="nf">close</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">),</span>
+			<span class="nn">file</span><span class="p">:</span><span class="nf">copy</span><span class="p">(</span><span class="nv">Source_File_Name</span><span class="p">,</span> <span class="nv">Destination_File_Name</span><span class="p">),</span>
+			<span class="n">ok</span>
+	<span class="k">end</span><span class="p">.</span>
+
+
+<span class="c">%产生随机AES，加密并写入AES密钥到文件头
+</span><span class="c"></span><span class="nf">write_aes_key</span><span class="p">(</span><span class="nv">Destination_File</span><span class="p">,</span><span class="nv">Public_Key</span><span class="p">,{</span><span class="nv">Aes_Ivec</span><span class="p">,</span><span class="nv">Aes_Key</span><span class="p">})</span> <span class="o">-&gt;</span>
+	<span class="nv">Encrypted_Aes_Ivec</span> <span class="o">=</span> <span class="nn">public_key</span><span class="p">:</span><span class="nf">encrypt_public</span><span class="p">(</span><span class="nv">Aes_Ivec</span><span class="p">,</span><span class="nv">Public_Key</span><span class="p">),</span>
+	<span class="nv">Encrypted_Aes_Key</span> <span class="o">=</span> <span class="nn">public_key</span><span class="p">:</span><span class="nf">encrypt_public</span><span class="p">(</span><span class="nv">Aes_Key</span><span class="p">,</span><span class="nv">Public_Key</span><span class="p">),</span>
+
+	<span class="nv">Aes_Ivec_Size</span> <span class="o">=</span> <span class="nn">erlang</span><span class="p">:</span><span class="nb">byte_size</span><span class="p">(</span><span class="nv">Encrypted_Aes_Ivec</span><span class="p">),</span>
+	<span class="nv">Aes_Key_Size</span> <span class="o">=</span> <span class="nn">erlang</span><span class="p">:</span><span class="nb">byte_size</span><span class="p">(</span><span class="nv">Encrypted_Aes_Key</span><span class="p">),</span>
+
+	<span class="nn">file</span><span class="p">:</span><span class="nf">write</span><span class="p">(</span><span class="nv">Destination_File</span><span class="p">,</span><span class="o">&lt;&lt;</span><span class="nv">Aes_Ivec_Size</span><span class="p">:</span><span class="mi">32</span><span class="o">&gt;&gt;</span><span class="p">),</span>
+	<span class="nn">file</span><span class="p">:</span><span class="nf">write</span><span class="p">(</span><span class="nv">Destination_File</span><span class="p">,</span><span class="o">&lt;&lt;</span><span class="nv">Aes_Key_Size</span><span class="p">:</span><span class="mi">32</span><span class="o">&gt;&gt;</span><span class="p">),</span>
+
+	<span class="nn">file</span><span class="p">:</span><span class="nf">write</span><span class="p">(</span><span class="nv">Destination_File</span><span class="p">,</span><span class="nv">Encrypted_Aes_Ivec</span><span class="p">),</span>
+	<span class="nn">file</span><span class="p">:</span><span class="nf">write</span><span class="p">(</span><span class="nv">Destination_File</span><span class="p">,</span><span class="nv">Encrypted_Aes_Key</span><span class="p">).</span>
+
+
+
+<span class="c">%AES加密
+</span><span class="c"></span><span class="nf">encrypt</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">,</span><span class="nv">Destination_File</span><span class="p">,{</span><span class="nv">Aes_Ivec</span><span class="p">,</span><span class="nv">Aes_Key</span><span class="p">}</span><span class="o">=</span><span class="nv">Aes_Key_Info</span><span class="p">,</span><span class="n">aes</span><span class="p">)</span> <span class="o">-&gt;</span>
+	<span class="k">case</span> <span class="nn">file</span><span class="p">:</span><span class="nf">read</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">,</span><span class="o">?</span><span class="nv">AES_BUFFER_SIZE</span><span class="p">)</span> <span class="k">of</span>
+		<span class="p">{</span><span class="n">ok</span><span class="p">,</span><span class="nv">Source_Binary</span><span class="p">}</span> <span class="o">-&gt;</span>
+			<span class="nv">Block_Binary</span> <span class="o">=</span> <span class="n">aes_encrypt</span><span class="p">(</span><span class="nv">Aes_Ivec</span><span class="p">,</span><span class="nv">Aes_Key</span><span class="p">,</span><span class="nv">Source_Binary</span><span class="p">),</span>
+
+			<span class="nv">Block_Size</span> <span class="o">=</span> <span class="nn">erlang</span><span class="p">:</span><span class="nb">byte_size</span><span class="p">(</span><span class="nv">Block_Binary</span><span class="p">),</span>
+			<span class="nn">file</span><span class="p">:</span><span class="nf">write</span><span class="p">(</span><span class="nv">Destination_File</span><span class="p">,</span><span class="o">&lt;&lt;</span><span class="nv">Block_Size</span><span class="p">:</span><span class="mi">32</span><span class="o">&gt;&gt;</span><span class="p">),</span>
+
+			<span class="nn">file</span><span class="p">:</span><span class="nf">write</span><span class="p">(</span><span class="nv">Destination_File</span><span class="p">,</span><span class="nv">Block_Binary</span><span class="p">),</span>
+			<span class="n">encrypt</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">,</span><span class="nv">Destination_File</span><span class="p">,</span><span class="nv">Aes_Key_Info</span><span class="p">,</span><span class="n">aes</span><span class="p">);</span>
+		<span class="n">eof</span> <span class="o">-&gt;</span>
+			<span class="nn">file</span><span class="p">:</span><span class="nf">close</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">),</span>
+			<span class="nn">file</span><span class="p">:</span><span class="nf">close</span><span class="p">(</span><span class="nv">Destination_File</span><span class="p">),</span>
+			<span class="n">ok</span>
+	<span class="k">end</span><span class="p">;</span>
+<span class="c">%RSA密码
+</span><span class="c"></span><span class="nf">encrypt</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">,</span><span class="nv">Destination_File</span><span class="p">,</span><span class="nv">Public_Key</span><span class="p">,</span><span class="n">rsa</span><span class="p">)</span> <span class="o">-&gt;</span>
+	<span class="k">case</span> <span class="nn">file</span><span class="p">:</span><span class="nf">read</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">,</span><span class="o">?</span><span class="nv">RAS_KEY_SIZE</span> <span class="ow">div</span> <span class="mi">8</span> <span class="o">-</span> <span class="mi">11</span><span class="p">)</span> <span class="k">of</span>
+		<span class="p">{</span><span class="n">ok</span><span class="p">,</span><span class="nv">Source_Binary</span><span class="p">}</span> <span class="o">-&gt;</span>
+			<span class="nv">Destination_Binary</span> <span class="o">=</span> <span class="nn">public_key</span><span class="p">:</span><span class="nf">encrypt_public</span><span class="p">(</span><span class="nv">Source_Binary</span><span class="p">,</span><span class="nv">Public_Key</span><span class="p">),</span>
+			<span class="nn">file</span><span class="p">:</span><span class="nf">write</span><span class="p">(</span><span class="nv">Destination_File</span><span class="p">,</span><span class="nv">Destination_Binary</span><span class="p">),</span>
+			<span class="n">encrypt</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">,</span><span class="nv">Destination_File</span><span class="p">,</span><span class="nv">Public_Key</span><span class="p">,</span><span class="n">rsa</span><span class="p">);</span>
+		<span class="n">eof</span> <span class="o">-&gt;</span>
+			<span class="nn">file</span><span class="p">:</span><span class="nf">close</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">),</span>
+			<span class="nn">file</span><span class="p">:</span><span class="nf">close</span><span class="p">(</span><span class="nv">Destination_File</span><span class="p">),</span>
+			<span class="n">ok</span>
+	<span class="k">end</span><span class="p">.</span>
+
+
+
+
+
+
+<span class="c">%根据“最多同时运行加解密进程数量”进行加密。
+</span><span class="c"></span><span class="nf">encode</span><span class="p">(_</span><span class="nv">Source_Path</span><span class="p">,_</span><span class="nv">Destination_Path</span><span class="p">,[],_</span><span class="nv">N</span><span class="p">,_</span><span class="nv">Counter</span><span class="p">)</span> <span class="o">-&gt;</span>
+	<span class="n">ok</span><span class="p">;</span>
+<span class="nf">encode</span><span class="p">(</span><span class="nv">Source_Path</span><span class="p">,</span><span class="nv">Destination_Path</span><span class="p">,[</span><span class="nv">Source_File_Name</span> <span class="p">|</span> <span class="nv">Source_File_Name_List</span><span class="p">],</span><span class="nv">N</span><span class="p">,</span><span class="nv">Counter</span><span class="p">)</span> <span class="k">when</span> <span class="nv">N</span> <span class="o">&lt;</span> <span class="o">?</span><span class="nv">MAX_PROCESS_NUMBER</span> <span class="o">-&gt;</span>
+	<span class="n">encode_process</span><span class="p">(</span><span class="nv">Source_File_Name</span><span class="p">,</span><span class="nv">Source_Path</span><span class="p">,</span><span class="nv">Destination_Path</span><span class="p">,</span><span class="nv">Counter</span><span class="p">),</span>
+	<span class="n">encode</span><span class="p">(</span><span class="nv">Source_Path</span><span class="p">,</span><span class="nv">Destination_Path</span><span class="p">,</span><span class="nv">Source_File_Name_List</span><span class="p">,</span><span class="nv">N</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span><span class="nv">Counter</span><span class="p">);</span>
+<span class="nf">encode</span><span class="p">(</span><span class="nv">Source_Path</span><span class="p">,</span><span class="nv">Destination_Path</span><span class="p">,[</span><span class="nv">Source_File_Name</span> <span class="p">|</span> <span class="nv">Source_File_Name_List</span><span class="p">],</span><span class="nv">N</span><span class="p">,</span><span class="nv">Counter</span><span class="p">)</span> <span class="k">when</span> <span class="nv">N</span> <span class="o">&gt;=</span> <span class="o">?</span><span class="nv">MAX_PROCESS_NUMBER</span> <span class="o">-&gt;</span>
+	<span class="k">receive</span>
+		<span class="p">{</span><span class="n">&#39;DOWN&#39;</span><span class="p">,_</span><span class="nv">Ref</span><span class="p">,</span><span class="n">process</span><span class="p">,_</span><span class="nv">Pid</span><span class="p">,_}</span> <span class="o">-&gt;</span>
+			<span class="n">encode_process</span><span class="p">(</span><span class="nv">Source_File_Name</span><span class="p">,</span><span class="nv">Source_Path</span><span class="p">,</span><span class="nv">Destination_Path</span><span class="p">,</span><span class="nv">Counter</span><span class="p">)</span>
+	<span class="k">end</span><span class="p">,</span>
+	<span class="n">encode</span><span class="p">(</span><span class="nv">Source_Path</span><span class="p">,</span><span class="nv">Destination_Path</span><span class="p">,</span><span class="nv">Source_File_Name_List</span><span class="p">,</span><span class="nv">N</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span><span class="nv">Counter</span><span class="p">).</span>
+
+
+
+
+
+<span class="nf">encode_process</span><span class="p">(</span><span class="nv">Source_File_Name</span><span class="p">,</span><span class="nv">Source_Path</span><span class="p">,</span><span class="nv">Destination_Path</span><span class="p">,</span><span class="nv">Counter</span><span class="p">)</span> <span class="o">-&gt;</span>
+	<span class="nb">spawn_monitor</span><span class="p">(</span><span class="k">fun</span><span class="p">()</span> <span class="o">-&gt;</span>
+		<span class="nv">Destination_File_Name</span> <span class="o">=</span> <span class="nn">lists</span><span class="p">:</span><span class="nf">concat</span><span class="p">([</span><span class="nv">Destination_Path</span><span class="p">,</span><span class="nn">lists</span><span class="p">:</span><span class="nf">subtract</span><span class="p">(</span><span class="nv">Source_File_Name</span><span class="p">,</span> <span class="nv">Source_Path</span><span class="p">)]),</span>
+		<span class="nn">filelib</span><span class="p">:</span><span class="nf">ensure_dir</span><span class="p">(</span><span class="nv">Destination_File_Name</span><span class="p">),</span>
+		<span class="n">encode</span><span class="p">(</span><span class="nv">Source_File_Name</span><span class="p">,</span><span class="nv">Destination_File_Name</span><span class="p">,</span><span class="n">file</span><span class="p">),</span>
+		<span class="nv">Counter</span> <span class="o">!</span> <span class="p">{</span><span class="n">add</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="nv">Source_File_Name</span><span class="p">}</span>
+	<span class="k">end</span><span class="p">).</span>
+
+
+
+
+<span class="nf">counter</span><span class="p">(</span><span class="nv">Max</span><span class="p">,</span><span class="nv">State</span><span class="p">)</span> <span class="o">-&gt;</span>
+	<span class="k">receive</span>
+		<span class="p">{</span><span class="n">add</span><span class="p">,</span><span class="nv">N</span><span class="p">,</span><span class="nv">Source_File_Name</span><span class="p">}</span> <span class="o">-&gt;</span>
+			<span class="nv">New_State</span> <span class="o">=</span> <span class="nv">State</span> <span class="o">+</span> <span class="nv">N</span><span class="p">,</span>
+			<span class="nn">io</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&#34;progress:</span><span class="si">~p</span><span class="s">/</span><span class="si">~p</span><span class="s">,file name:</span><span class="si">~p~n</span><span class="s">&#34;</span><span class="p">,[</span><span class="nv">New_State</span><span class="p">,</span><span class="nv">Max</span><span class="p">,</span><span class="nv">Source_File_Name</span><span class="p">]),</span>
+			<span class="k">if</span>
+				<span class="nv">New_State</span> <span class="o">&lt;</span> <span class="nv">Max</span> <span class="o">-&gt;</span>
+					<span class="n">counter</span><span class="p">(</span><span class="nv">Max</span><span class="p">,</span><span class="nv">New_State</span><span class="p">);</span>
+				<span class="n">true</span> <span class="o">-&gt;</span>
+					<span class="n">ok</span>
+			<span class="k">end</span>
+	<span class="k">end</span><span class="p">.</span>
+
+
+
+
+
+
+
+
+
+
+<span class="c">%解密目录
+</span><span class="c"></span><span class="nf">decode</span><span class="p">(</span><span class="nv">Key</span><span class="p">,</span><span class="nv">Source_Path</span><span class="p">,</span><span class="nv">Destination_Path</span><span class="p">,</span><span class="n">path</span><span class="p">)</span> <span class="o">-&gt;</span>
+	<span class="nb">process_flag</span><span class="p">(</span><span class="n">trap_exit</span><span class="p">,</span><span class="n">true</span><span class="p">),</span>
+	<span class="nv">Source_File_Name_List</span> <span class="o">=</span> <span class="nn">filelib</span><span class="p">:</span><span class="nf">fold_files</span><span class="p">(</span><span class="nv">Source_Path</span><span class="p">,</span> <span class="s">&#34;.*&#34;</span><span class="p">,</span> <span class="n">true</span><span class="p">,</span> <span class="k">fun</span><span class="p">(</span><span class="nv">F</span><span class="p">,</span> <span class="nv">AccIn</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="p">[</span><span class="nv">F</span> <span class="p">|</span> <span class="nv">AccIn</span><span class="p">]</span> <span class="k">end</span><span class="p">,</span> <span class="p">[]),</span>
+	<span class="nv">Total</span> <span class="o">=</span> <span class="nb">length</span><span class="p">(</span><span class="nv">Source_File_Name_List</span><span class="p">),</span>
+	<span class="nv">Counter</span> <span class="o">=</span> <span class="nb">spawn_link</span><span class="p">(</span><span class="k">fun</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">counter</span><span class="p">(</span><span class="nv">Total</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span> <span class="k">end</span><span class="p">),</span>
+	<span class="k">if</span>
+		<span class="nb">length</span><span class="p">(</span><span class="nv">Source_File_Name_List</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">-&gt;</span>
+			<span class="n">decode</span><span class="p">(</span><span class="nv">Key</span><span class="p">,</span><span class="nv">Source_Path</span><span class="p">,</span><span class="nv">Destination_Path</span><span class="p">,</span><span class="nv">Source_File_Name_List</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="nv">Counter</span><span class="p">),</span>
+			<span class="n">ok</span><span class="p">;</span>
+		<span class="n">true</span> <span class="o">-&gt;</span>
+			<span class="n">ok</span>
+	<span class="k">end</span><span class="p">;</span>
+<span class="c">%解密文件
+</span><span class="c"></span><span class="nf">decode</span><span class="p">(</span><span class="nv">Key</span><span class="p">,</span><span class="nv">Source_File_Name</span><span class="p">,</span><span class="nv">Destination_File_Name</span><span class="p">,</span><span class="n">file</span><span class="p">)</span> <span class="o">-&gt;</span>
+	<span class="p">{</span><span class="n">ok</span><span class="p">,</span> <span class="nv">Source_File</span><span class="p">}</span> <span class="o">=</span> <span class="nn">file</span><span class="p">:</span><span class="nf">open</span><span class="p">(</span><span class="nv">Source_File_Name</span><span class="p">,</span> <span class="p">[</span><span class="n">raw</span><span class="p">,</span> <span class="n">binary</span><span class="p">]),</span>
+
+	<span class="p">{</span><span class="n">ok</span><span class="p">,</span> <span class="nv">Destination_File</span><span class="p">}</span> <span class="o">=</span> <span class="nn">file</span><span class="p">:</span><span class="nf">open</span><span class="p">(</span><span class="nv">Destination_File_Name</span><span class="p">,</span> <span class="p">[</span><span class="n">write</span><span class="p">,</span> <span class="n">raw</span><span class="p">]),</span>
+
+	<span class="c">%读取私钥信息
+</span><span class="c"></span>	<span class="nv">Private_Key_File_Name</span> <span class="o">=</span> <span class="nn">lists</span><span class="p">:</span><span class="nf">flatten</span><span class="p">(</span><span class="nn">io_lib</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&#34;</span><span class="si">~s</span><span class="s">/</span><span class="si">~s</span><span class="s">&#34;</span><span class="p">,[</span><span class="n">application_path</span><span class="p">(),</span><span class="o">?</span><span class="nv">PRIVATE_KEY_FILE_NAME</span><span class="p">])),</span>
+	<span class="p">{</span><span class="n">ok</span><span class="p">,</span><span class="nv">Encrypted_Private_Key_Binary</span><span class="p">}</span> <span class="o">=</span> <span class="nn">file</span><span class="p">:</span><span class="nf">read_file</span><span class="p">(</span><span class="nv">Private_Key_File_Name</span><span class="p">),</span>
+	<span class="nv">Decrypted_Private_Key_Binary</span> <span class="o">=</span> <span class="n">aes_decrypt</span><span class="p">(</span><span class="o">?</span><span class="nv">AES_IVEC</span><span class="p">,</span><span class="nb">list_to_binary</span><span class="p">(</span><span class="nn">string</span><span class="p">:</span><span class="nf">left</span><span class="p">(</span><span class="nv">Key</span><span class="p">,</span><span class="o">?</span><span class="nv">AES_KEY_SIZE</span><span class="p">,</span><span class="sc">$!</span><span class="p">)),</span><span class="nv">Encrypted_Private_Key_Binary</span><span class="p">),</span>
+	<span class="p">[</span><span class="nv">Private_Key_Info</span><span class="p">]</span> <span class="o">=</span> <span class="nn">public_key</span><span class="p">:</span><span class="nf">pem_decode</span><span class="p">(</span><span class="nv">Decrypted_Private_Key_Binary</span><span class="p">),</span>
+	<span class="nv">Private_Key</span> <span class="o">=</span> <span class="nn">public_key</span><span class="p">:</span><span class="nf">pem_entry_decode</span><span class="p">(</span><span class="nv">Private_Key_Info</span><span class="p">),</span>
+
+	<span class="c">%根据加密类型进行解密
+</span><span class="c"></span>	<span class="k">case</span> <span class="n">encrypted_type</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">)</span> <span class="k">of</span>
+		<span class="n">aes</span> <span class="o">-&gt;</span>
+			<span class="nv">Aes_Key_Info</span> <span class="o">=</span> <span class="n">read_aes_key</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">,</span><span class="nv">Private_Key</span><span class="p">),</span>
+			<span class="n">decrypt</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">,</span><span class="nv">Destination_File</span><span class="p">,</span><span class="nv">Aes_Key_Info</span><span class="p">,</span><span class="n">aes</span><span class="p">);</span>
+		<span class="n">rsa</span> <span class="o">-&gt;</span>
+			<span class="n">decrypt</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">,</span><span class="nv">Destination_File</span><span class="p">,</span><span class="nv">Private_Key</span><span class="p">,</span><span class="n">rsa</span><span class="p">);</span>
+		<span class="n">no_encrypted</span> <span class="o">-&gt;</span>
+			<span class="nn">file</span><span class="p">:</span><span class="nf">close</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">),</span>
+			<span class="nn">file</span><span class="p">:</span><span class="nf">copy</span><span class="p">(</span><span class="nv">Source_File_Name</span><span class="p">,</span> <span class="nv">Destination_File_Name</span><span class="p">),</span>
+			<span class="n">ok</span>
+	<span class="k">end</span><span class="p">.</span>
+
+
+<span class="c">%读取并解密文件头部的AES密钥
+</span><span class="c"></span><span class="nf">read_aes_key</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">,</span><span class="nv">Private_Key</span><span class="p">)</span> <span class="o">-&gt;</span>
+	<span class="p">{</span><span class="n">ok</span><span class="p">,</span><span class="o">&lt;&lt;</span><span class="nv">Aes_Ivec_Size</span><span class="p">:</span><span class="mi">32</span><span class="o">&gt;&gt;</span><span class="p">}</span> <span class="o">=</span> <span class="nn">file</span><span class="p">:</span><span class="nf">read</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span>
+	<span class="p">{</span><span class="n">ok</span><span class="p">,</span><span class="o">&lt;&lt;</span><span class="nv">Aes_Key_Size</span><span class="p">:</span><span class="mi">32</span><span class="o">&gt;&gt;</span><span class="p">}</span> <span class="o">=</span> <span class="nn">file</span><span class="p">:</span><span class="nf">read</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">,</span><span class="mi">4</span><span class="p">),</span>
+
+	<span class="p">{</span><span class="n">ok</span><span class="p">,</span><span class="nv">Encrypted_Aes_Ivec</span><span class="p">}</span> <span class="o">=</span> <span class="nn">file</span><span class="p">:</span><span class="nf">read</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">,</span><span class="nv">Aes_Ivec_Size</span><span class="p">),</span>
+	<span class="p">{</span><span class="n">ok</span><span class="p">,</span><span class="nv">Encrypted_Aes_Key</span><span class="p">}</span> <span class="o">=</span> <span class="nn">file</span><span class="p">:</span><span class="nf">read</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">,</span><span class="nv">Aes_Key_Size</span><span class="p">),</span>
+
+	<span class="nv">Aes_Ivec</span> <span class="o">=</span> <span class="nn">public_key</span><span class="p">:</span><span class="nf">decrypt_private</span><span class="p">(</span><span class="nv">Encrypted_Aes_Ivec</span><span class="p">,</span> <span class="nv">Private_Key</span><span class="p">),</span>
+	<span class="nv">Aes_Key</span> <span class="o">=</span> <span class="nn">public_key</span><span class="p">:</span><span class="nf">decrypt_private</span><span class="p">(</span><span class="nv">Encrypted_Aes_Key</span><span class="p">,</span> <span class="nv">Private_Key</span><span class="p">),</span>
+	<span class="p">{</span><span class="nv">Aes_Ivec</span><span class="p">,</span><span class="nv">Aes_Key</span><span class="p">}.</span>
+
+
+
+<span class="c">%AES解密
+</span><span class="c"></span><span class="nf">decrypt</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">,</span><span class="nv">Destination_File</span><span class="p">,{</span><span class="nv">Aes_Ivec</span><span class="p">,</span><span class="nv">Aes_Key</span><span class="p">}</span><span class="o">=</span><span class="nv">Aes_Key_Info</span><span class="p">,</span><span class="n">aes</span><span class="p">)</span> <span class="o">-&gt;</span>
+	<span class="k">case</span> <span class="nn">file</span><span class="p">:</span><span class="nf">read</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span> <span class="k">of</span>
+		<span class="p">{</span><span class="n">ok</span><span class="p">,</span><span class="o">&lt;&lt;</span><span class="nv">Block_Size</span><span class="p">:</span><span class="mi">32</span><span class="o">&gt;&gt;</span><span class="p">}</span> <span class="o">-&gt;</span>
+			<span class="k">case</span> <span class="nn">file</span><span class="p">:</span><span class="nf">read</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">,</span><span class="nv">Block_Size</span><span class="p">)</span> <span class="k">of</span>
+				<span class="p">{</span><span class="n">ok</span><span class="p">,</span><span class="nv">Source_Binary</span><span class="p">}</span> <span class="o">-&gt;</span>
+					<span class="nv">Destination_Binary</span> <span class="o">=</span> <span class="n">aes_decrypt</span><span class="p">(</span><span class="nv">Aes_Ivec</span><span class="p">,</span><span class="nv">Aes_Key</span><span class="p">,</span><span class="nv">Source_Binary</span><span class="p">),</span>
+					<span class="nn">file</span><span class="p">:</span><span class="nf">write</span><span class="p">(</span><span class="nv">Destination_File</span><span class="p">,</span><span class="nv">Destination_Binary</span><span class="p">),</span>
+					<span class="n">decrypt</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">,</span><span class="nv">Destination_File</span><span class="p">,</span><span class="nv">Aes_Key_Info</span><span class="p">,</span><span class="n">aes</span><span class="p">);</span>
+				<span class="n">eof</span> <span class="o">-&gt;</span>
+					<span class="nn">file</span><span class="p">:</span><span class="nf">close</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">),</span>
+					<span class="nn">file</span><span class="p">:</span><span class="nf">close</span><span class="p">(</span><span class="nv">Destination_File</span><span class="p">),</span>
+					<span class="n">ok</span>
+			<span class="k">end</span><span class="p">;</span>
+		<span class="n">eof</span> <span class="o">-&gt;</span>
+			<span class="nn">file</span><span class="p">:</span><span class="nf">close</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">),</span>
+			<span class="nn">file</span><span class="p">:</span><span class="nf">close</span><span class="p">(</span><span class="nv">Destination_File</span><span class="p">),</span>
+			<span class="n">ok</span>
+	<span class="k">end</span><span class="p">;</span>
+<span class="c">%RSA解密
+</span><span class="c"></span><span class="nf">decrypt</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">,</span><span class="nv">Destination_File</span><span class="p">,</span><span class="nv">Private_Key</span><span class="p">,</span><span class="n">rsa</span><span class="p">)</span> <span class="o">-&gt;</span>
+	<span class="k">case</span> <span class="nn">file</span><span class="p">:</span><span class="nf">read</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">,</span><span class="o">?</span><span class="nv">RAS_KEY_SIZE</span> <span class="ow">div</span> <span class="mi">8</span><span class="p">)</span> <span class="k">of</span>
+		<span class="p">{</span><span class="n">ok</span><span class="p">,</span><span class="nv">Source_Binary</span><span class="p">}</span> <span class="o">-&gt;</span>
+			<span class="nv">Destination_Binary</span> <span class="o">=</span> <span class="nn">public_key</span><span class="p">:</span><span class="nf">decrypt_private</span><span class="p">(</span><span class="nv">Source_Binary</span><span class="p">,</span><span class="nv">Private_Key</span><span class="p">),</span>
+			<span class="nn">file</span><span class="p">:</span><span class="nf">write</span><span class="p">(</span><span class="nv">Destination_File</span><span class="p">,</span><span class="nv">Destination_Binary</span><span class="p">),</span>
+			<span class="n">decrypt</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">,</span><span class="nv">Destination_File</span><span class="p">,</span><span class="nv">Private_Key</span><span class="p">,</span><span class="n">rsa</span><span class="p">);</span>
+		<span class="n">eof</span> <span class="o">-&gt;</span>
+			<span class="nn">file</span><span class="p">:</span><span class="nf">close</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">),</span>
+			<span class="nn">file</span><span class="p">:</span><span class="nf">close</span><span class="p">(</span><span class="nv">Destination_File</span><span class="p">),</span>
+			<span class="n">ok</span>
+	<span class="k">end</span><span class="p">.</span>
+
+
+
+<span class="c">%根据“最多同时运行加解密进程数量”进行解密。
+</span><span class="c"></span><span class="nf">decode</span><span class="p">(_</span><span class="nv">Key</span><span class="p">,_</span><span class="nv">Source_Path</span><span class="p">,_</span><span class="nv">Destination_Path</span><span class="p">,[],_</span><span class="nv">N</span><span class="p">,_</span><span class="nv">Counter</span><span class="p">)</span> <span class="o">-&gt;</span>
+	<span class="n">ok</span><span class="p">;</span>
+<span class="nf">decode</span><span class="p">(</span><span class="nv">Key</span><span class="p">,</span><span class="nv">Source_Path</span><span class="p">,</span><span class="nv">Destination_Path</span><span class="p">,[</span><span class="nv">Source_File_Name</span> <span class="p">|</span> <span class="nv">Source_File_Name_List</span><span class="p">],</span><span class="nv">N</span><span class="p">,</span><span class="nv">Counter</span><span class="p">)</span> <span class="k">when</span> <span class="nv">N</span> <span class="o">&lt;</span> <span class="o">?</span><span class="nv">MAX_PROCESS_NUMBER</span> <span class="o">-&gt;</span>
+	<span class="n">dencode_process</span><span class="p">(</span><span class="nv">Source_File_Name</span><span class="p">,</span><span class="nv">Key</span><span class="p">,</span><span class="nv">Source_Path</span><span class="p">,</span><span class="nv">Destination_Path</span><span class="p">,</span><span class="nv">Counter</span><span class="p">),</span>
+	<span class="n">decode</span><span class="p">(</span><span class="nv">Key</span><span class="p">,</span><span class="nv">Source_Path</span><span class="p">,</span><span class="nv">Destination_Path</span><span class="p">,</span><span class="nv">Source_File_Name_List</span><span class="p">,</span><span class="nv">N</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span><span class="nv">Counter</span><span class="p">);</span>
+<span class="nf">decode</span><span class="p">(</span><span class="nv">Key</span><span class="p">,</span><span class="nv">Source_Path</span><span class="p">,</span><span class="nv">Destination_Path</span><span class="p">,[</span><span class="nv">Source_File_Name</span> <span class="p">|</span> <span class="nv">Source_File_Name_List</span><span class="p">],</span><span class="nv">N</span><span class="p">,</span><span class="nv">Counter</span><span class="p">)</span> <span class="k">when</span> <span class="nv">N</span> <span class="o">&gt;=</span> <span class="o">?</span><span class="nv">MAX_PROCESS_NUMBER</span> <span class="o">-&gt;</span>
+	<span class="k">receive</span>
+		<span class="p">{</span><span class="n">&#39;DOWN&#39;</span><span class="p">,_</span><span class="nv">Ref</span><span class="p">,</span><span class="n">process</span><span class="p">,_</span><span class="nv">Pid</span><span class="p">,_}</span> <span class="o">-&gt;</span>
+			<span class="n">dencode_process</span><span class="p">(</span><span class="nv">Source_File_Name</span><span class="p">,</span><span class="nv">Key</span><span class="p">,</span><span class="nv">Source_Path</span><span class="p">,</span><span class="nv">Destination_Path</span><span class="p">,</span><span class="nv">Counter</span><span class="p">)</span>
+	<span class="k">end</span><span class="p">,</span>
+	<span class="n">decode</span><span class="p">(</span><span class="nv">Key</span><span class="p">,</span><span class="nv">Source_Path</span><span class="p">,</span><span class="nv">Destination_Path</span><span class="p">,</span><span class="nv">Source_File_Name_List</span><span class="p">,</span><span class="nv">N</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span><span class="nv">Counter</span><span class="p">).</span>
+
+
+<span class="nf">dencode_process</span><span class="p">(</span><span class="nv">Source_File_Name</span><span class="p">,</span><span class="nv">Key</span><span class="p">,</span><span class="nv">Source_Path</span><span class="p">,</span><span class="nv">Destination_Path</span><span class="p">,</span><span class="nv">Counter</span><span class="p">)</span> <span class="o">-&gt;</span>
+	<span class="nb">spawn_monitor</span><span class="p">(</span><span class="k">fun</span><span class="p">()</span> <span class="o">-&gt;</span>
+		<span class="nv">Destination_File_Name</span> <span class="o">=</span> <span class="nn">lists</span><span class="p">:</span><span class="nf">concat</span><span class="p">([</span><span class="nv">Destination_Path</span><span class="p">,</span><span class="nn">lists</span><span class="p">:</span><span class="nf">subtract</span><span class="p">(</span><span class="nv">Source_File_Name</span><span class="p">,</span> <span class="nv">Source_Path</span><span class="p">)]),</span>
+		<span class="nn">filelib</span><span class="p">:</span><span class="nf">ensure_dir</span><span class="p">(</span><span class="nv">Destination_File_Name</span><span class="p">),</span>
+		<span class="n">decode</span><span class="p">(</span><span class="nv">Key</span><span class="p">,</span><span class="nv">Source_File_Name</span><span class="p">,</span><span class="nv">Destination_File_Name</span><span class="p">,</span><span class="n">file</span><span class="p">),</span>
+		<span class="nv">Counter</span> <span class="o">!</span> <span class="p">{</span><span class="n">add</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="nv">Source_File_Name</span><span class="p">}</span>
+	<span class="k">end</span><span class="p">).</span>
+
+
+
+
+
+
+<span class="c">%AES密方法
+</span><span class="c"></span><span class="nf">aes_encrypt</span><span class="p">(</span><span class="nv">Ivec</span><span class="p">,</span><span class="nv">Key</span><span class="p">,</span><span class="nv">Data</span><span class="p">)</span> <span class="o">-&gt;</span>
+    <span class="nv">Len</span> <span class="o">=</span> <span class="nn">erlang</span><span class="p">:</span><span class="nb">byte_size</span><span class="p">(</span><span class="nv">Data</span><span class="p">),</span>
+    <span class="nv">Supplement</span> <span class="o">=</span> <span class="p">(</span><span class="o">?</span><span class="nv">AES_KEY_SIZE</span> <span class="o">-</span> <span class="p">((</span><span class="nv">Len</span><span class="o">+</span><span class="mi">2</span><span class="p">)</span> <span class="ow">rem</span> <span class="o">?</span><span class="nv">AES_KEY_SIZE</span><span class="p">))</span> <span class="o">*</span> <span class="mi">8</span><span class="p">,</span>
+    <span class="nv">Value</span> <span class="o">=</span> <span class="o">&lt;&lt;</span><span class="nv">Len</span><span class="p">:</span><span class="o">?</span><span class="nv">AES_KEY_SIZE</span><span class="p">,</span><span class="nv">Data</span><span class="o">/</span><span class="n">binary</span><span class="p">,</span><span class="mi">0</span><span class="p">:</span><span class="nv">Supplement</span><span class="o">&gt;&gt;</span><span class="p">,</span>
+	<span class="nn">crypto</span><span class="p">:</span><span class="nf">block_encrypt</span><span class="p">(</span><span class="n">aes_cbc128</span><span class="p">,</span><span class="nv">Key</span><span class="p">,</span><span class="nv">Ivec</span><span class="p">,</span><span class="nv">Value</span><span class="p">).</span>
+<span class="c">%AES解密方法
+</span><span class="c"></span><span class="nf">aes_decrypt</span><span class="p">(</span><span class="nv">Ivec</span><span class="p">,</span><span class="nv">Key</span><span class="p">,</span><span class="nv">Data</span><span class="p">)</span> <span class="o">-&gt;</span>
+    <span class="nv">Value</span> <span class="o">=</span> <span class="nn">crypto</span><span class="p">:</span><span class="nf">block_decrypt</span><span class="p">(</span><span class="n">aes_cbc128</span><span class="p">,</span><span class="nv">Key</span><span class="p">,</span><span class="nv">Ivec</span><span class="p">,</span><span class="nv">Data</span><span class="p">),</span>
+    <span class="o">&lt;&lt;</span><span class="nv">Len</span><span class="p">:</span><span class="o">?</span><span class="nv">AES_KEY_SIZE</span><span class="p">,</span><span class="nv">R</span><span class="p">:</span><span class="nv">Len</span><span class="o">/</span><span class="n">binary</span><span class="p">,_</span><span class="o">/</span><span class="n">binary</span><span class="o">&gt;&gt;</span> <span class="o">=</span> <span class="nv">Value</span><span class="p">,</span>
+    <span class="nv">R</span><span class="p">.</span>
+
+<span class="c">%产生随机AES密钥
+</span><span class="c"></span><span class="nf">random_aes_key</span><span class="p">()</span> <span class="o">-&gt;</span>
+	<span class="nv">Ivec</span> <span class="o">=</span> <span class="nb">list_to_binary</span><span class="p">([</span><span class="nn">rand</span><span class="p">:</span><span class="nf">uniform</span><span class="p">(</span><span class="mi">255</span><span class="p">)</span> <span class="p">||</span> <span class="p">_</span> <span class="o">&lt;-</span> <span class="nn">lists</span><span class="p">:</span><span class="nf">seq</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">?</span><span class="nv">AES_KEY_SIZE</span><span class="p">)]),</span>
+	<span class="nv">Key</span> <span class="o">=</span>  <span class="nb">list_to_binary</span><span class="p">([</span><span class="nn">rand</span><span class="p">:</span><span class="nf">uniform</span><span class="p">(</span><span class="mi">255</span><span class="p">)</span> <span class="p">||</span> <span class="p">_</span> <span class="o">&lt;-</span> <span class="nn">lists</span><span class="p">:</span><span class="nf">seq</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">?</span><span class="nv">AES_KEY_SIZE</span><span class="p">)]),</span>
+	<span class="p">{</span><span class="nv">Ivec</span><span class="p">,</span><span class="nv">Key</span><span class="p">}.</span>
+
+
+
+
+
+
+<span class="c">%获取程序运行路径
+</span><span class="c"></span><span class="nf">application_path</span><span class="p">()</span> <span class="o">-&gt;</span>
+    <span class="nv">T</span> <span class="o">=</span> <span class="nn">lists</span><span class="p">:</span><span class="nf">droplast</span><span class="p">(</span><span class="nn">string</span><span class="p">:</span><span class="nf">tokens</span><span class="p">(</span><span class="nn">code</span><span class="p">:</span><span class="nf">which</span><span class="p">(</span><span class="o">?</span><span class="nv">MODULE</span><span class="p">),</span><span class="s">&#34;/&#34;</span><span class="p">)),</span>
+    <span class="nv">R</span> <span class="o">=</span> <span class="nn">lists</span><span class="p">:</span><span class="nf">flatten</span><span class="p">([</span><span class="nv">D</span> <span class="o">++</span> <span class="s">&#34;/&#34;</span> <span class="p">||</span> <span class="nv">D</span> <span class="o">&lt;-</span> <span class="nv">T</span><span class="p">]),</span>
+    <span class="k">case</span> <span class="nn">os</span><span class="p">:</span><span class="nf">type</span><span class="p">()</span> <span class="k">of</span>
+	<span class="p">{_,</span><span class="n">nt</span><span class="p">}</span> <span class="o">-&gt;</span>
+	    <span class="nv">R</span><span class="p">;</span>
+	<span class="p">{_,</span><span class="n">linux</span><span class="p">}</span> <span class="o">-&gt;</span>
+	    <span class="s">&#34;/&#34;</span> <span class="o">++</span> <span class="nv">R</span>
+    <span class="k">end</span><span class="p">.</span>
+
+
+
+
+
+<span class="c">%读取文件头加密类型标识
+</span><span class="c"></span><span class="nf">encrypted_type</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">)</span> <span class="o">-&gt;</span>
+	<span class="nn">file</span><span class="p">:</span><span class="nf">position</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">,</span><span class="n">bof</span><span class="p">),</span>
+	<span class="p">{</span><span class="n">ok</span><span class="p">,</span><span class="nv">Header</span><span class="p">}</span> <span class="o">=</span> <span class="nn">file</span><span class="p">:</span><span class="nf">read</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">,</span><span class="o">?</span><span class="nv">HEADER_SIZE</span><span class="p">),</span>
+	<span class="k">if</span>
+		<span class="nv">Header</span> <span class="o">=:=</span> <span class="o">?</span><span class="nv">AES_ENCRYPTED_FILE_HEADER</span> <span class="o">-&gt;</span>
+			<span class="n">aes</span><span class="p">;</span>
+		<span class="nv">Header</span> <span class="o">=:=</span> <span class="o">?</span><span class="nv">RSA_ENCRYPTED_FILE_HEADER</span> <span class="o">-&gt;</span>
+			<span class="n">rsa</span><span class="p">;</span>
+		<span class="n">true</span> <span class="o">-&gt;</span>
+			<span class="nn">file</span><span class="p">:</span><span class="nf">position</span><span class="p">(</span><span class="nv">Source_File</span><span class="p">,</span><span class="n">bof</span><span class="p">),</span>
+			<span class="n">no_encrypted</span>
+	<span class="k">end</span><span class="p">.</span>
+
+
+
+
+
+<span class="c">%生成公钥私钥对，并加密保存
+</span><span class="c"></span><span class="nf">generate</span><span class="p">(</span><span class="nv">Key</span><span class="p">,</span><span class="nv">Path</span><span class="p">)</span> <span class="o">-&gt;</span>
+	<span class="nv">Private_Key_File_Name</span> <span class="o">=</span> <span class="nn">lists</span><span class="p">:</span><span class="nf">flatten</span><span class="p">(</span><span class="nn">io_lib</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&#34;</span><span class="si">~s</span><span class="s">/</span><span class="si">~s</span><span class="s">&#34;</span><span class="p">,[</span><span class="nv">Path</span><span class="p">,</span><span class="o">?</span><span class="nv">PRIVATE_KEY_FILE_NAME</span><span class="p">])),</span>
+	<span class="nv">Public_Key_File_Name</span> <span class="o">=</span> <span class="nn">lists</span><span class="p">:</span><span class="nf">flatten</span><span class="p">(</span><span class="nn">io_lib</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&#34;</span><span class="si">~s</span><span class="s">/</span><span class="si">~s</span><span class="s">&#34;</span><span class="p">,[</span><span class="nv">Path</span><span class="p">,</span><span class="o">?</span><span class="nv">PUBLIC_KEY_FILE_NAME</span><span class="p">])),</span>
+
+	<span class="nv">Private_Key</span> <span class="o">=</span> <span class="nn">public_key</span><span class="p">:</span><span class="nf">generate_key</span><span class="p">({</span><span class="n">rsa</span><span class="p">,</span><span class="o">?</span><span class="nv">RAS_KEY_SIZE</span><span class="p">,</span><span class="o">?</span><span class="nv">PRIMENUMBER</span><span class="p">}),</span>
+	<span class="nl">#&#39;RSAPrivateKey&#39;</span><span class="p">{</span><span class="n">modulus</span><span class="o">=</span><span class="nv">Modulus</span><span class="p">,</span><span class="n">publicExponent</span><span class="o">=</span><span class="nv">Public_Exponent</span><span class="p">}</span> <span class="o">=</span> <span class="nv">Private_Key</span><span class="p">,</span>
+	<span class="nv">Public_Key</span> <span class="o">=</span> <span class="nl">#&#39;RSAPublicKey&#39;</span><span class="p">{</span><span class="n">modulus</span><span class="o">=</span><span class="nv">Modulus</span><span class="p">,</span><span class="n">publicExponent</span><span class="o">=</span><span class="nv">Public_Exponent</span><span class="p">},</span>
+
+	<span class="nv">Private_Key_Binary</span> <span class="o">=</span> <span class="nn">public_key</span><span class="p">:</span><span class="nf">pem_encode</span><span class="p">([</span><span class="nn">public_key</span><span class="p">:</span><span class="nf">pem_entry_encode</span><span class="p">(</span><span class="n">&#39;PrivateKeyInfo&#39;</span><span class="p">,</span><span class="nv">Private_Key</span><span class="p">)]),</span>
+	<span class="nv">Public_Key_String</span> <span class="o">=</span> <span class="nb">binary_to_list</span><span class="p">(</span><span class="nn">public_key</span><span class="p">:</span><span class="nf">pem_encode</span><span class="p">([</span><span class="nn">public_key</span><span class="p">:</span><span class="nf">pem_entry_encode</span><span class="p">(</span><span class="n">&#39;SubjectPublicKeyInfo&#39;</span><span class="p">,</span><span class="nv">Public_Key</span><span class="p">)])),</span>
+
+	<span class="nv">Encrypted_Private_Key_String</span> <span class="o">=</span> <span class="n">aes_encrypt</span><span class="p">(</span><span class="o">?</span><span class="nv">AES_IVEC</span><span class="p">,</span><span class="nb">list_to_binary</span><span class="p">(</span><span class="nn">string</span><span class="p">:</span><span class="nf">left</span><span class="p">(</span><span class="nv">Key</span><span class="p">,</span><span class="o">?</span><span class="nv">AES_KEY_SIZE</span><span class="p">,</span><span class="sc">$!</span><span class="p">)),</span><span class="nv">Private_Key_Binary</span><span class="p">),</span>
+
+	<span class="nn">filelib</span><span class="p">:</span><span class="nf">ensure_dir</span><span class="p">(</span><span class="nv">Private_Key_File_Name</span><span class="p">),</span>
+	<span class="nn">filelib</span><span class="p">:</span><span class="nf">ensure_dir</span><span class="p">(</span><span class="nv">Public_Key_File_Name</span><span class="p">),</span>
+
+	<span class="nn">file</span><span class="p">:</span><span class="nf">write_file</span><span class="p">(</span><span class="nv">Private_Key_File_Name</span><span class="p">,</span><span class="nv">Encrypted_Private_Key_String</span><span class="p">),</span>
+	<span class="nn">file</span><span class="p">:</span><span class="nf">write_file</span><span class="p">(</span><span class="nv">Public_Key_File_Name</span><span class="p">,</span><span class="nv">Public_Key_String</span><span class="p">),</span>
+	<span class="n">ok</span><span class="p">.</span>
+
+
+
+
+
+<span class="c">%显示帮助说明
+</span><span class="c"></span><span class="nf">help</span><span class="p">()</span> <span class="o">-&gt;</span>
+	<span class="nn">io</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&#34;example:</span><span class="si">~n</span><span class="s">&#34;</span><span class="p">),</span>
+
+	<span class="nn">io</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&#34;Generate the key: </span><span class="se">\t</span><span class="s"> encoder:generate(</span><span class="se">\&#34;</span><span class="s">Password</span><span class="se">\&#34;</span><span class="s">,</span><span class="se">\&#34;</span><span class="s">Stored folder</span><span class="se">\&#34;</span><span class="s">).</span><span class="si">~n</span><span class="s">&#34;</span><span class="p">),</span>
+	<span class="nn">io</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&#34;Encrypt folder: </span><span class="se">\t</span><span class="s"> encoder:encode(</span><span class="se">\&#34;</span><span class="s">Encrypted folder</span><span class="se">\&#34;</span><span class="s">,</span><span class="se">\&#34;</span><span class="s">Stored folder</span><span class="se">\&#34;</span><span class="s">,path).</span><span class="si">~n</span><span class="s">&#34;</span><span class="p">),</span>
+	<span class="nn">io</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&#34;Encrypt file: </span><span class="se">\t\t</span><span class="s"> encoder:encode(</span><span class="se">\&#34;</span><span class="s">Encrypted file</span><span class="se">\&#34;</span><span class="s">,</span><span class="se">\&#34;</span><span class="s">Stored file</span><span class="se">\&#34;</span><span class="s">,file).</span><span class="si">~n</span><span class="s">&#34;</span><span class="p">),</span>
+
+	<span class="nn">io</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&#34;Decrypt folder: </span><span class="se">\t</span><span class="s"> encoder:decode(</span><span class="se">\&#34;</span><span class="s">Password</span><span class="se">\&#34;</span><span class="s">,</span><span class="se">\&#34;</span><span class="s">Decrypted folder</span><span class="se">\&#34;</span><span class="s">,</span><span class="se">\&#34;</span><span class="s">Stored folder</span><span class="se">\&#34;</span><span class="s">,path).</span><span class="si">~n</span><span class="s">&#34;</span><span class="p">),</span>
+	<span class="nn">io</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&#34;Decrypt file: </span><span class="se">\t\t</span><span class="s"> encoder:decode(</span><span class="se">\&#34;</span><span class="s">Password</span><span class="se">\&#34;</span><span class="s">,</span><span class="se">\&#34;</span><span class="s">Decrypted file</span><span class="se">\&#34;</span><span class="s">,</span><span class="se">\&#34;</span><span class="s">Stored file</span><span class="se">\&#34;</span><span class="s">,file).</span><span class="si">~n</span><span class="s">&#34;</span><span class="p">),</span>
+	<span class="n">ok</span><span class="p">.</span>
+</code></pre></div></article><section class="article labels"><a class="category" href=/categories/%E6%8A%80%E6%9C%AF/>技术</a><a class="category" href=/categories/erlang/>erlang</a><a class="tag" href=/tags/rsa/>RSA</a><a class="tag" href=/tags/%E5%8A%A0%E5%AF%86%E8%A7%A3%E5%AF%86/>加密解密</a></section>
+</div>
+<div class="article bottom"><section class="article navigation"><p><a class="link" href="/posts/%E6%8A%80%E6%9C%AF/debian/%E9%80%9A%E8%BF%87laptop-mode-tools%E6%8E%A7%E5%88%B6debian%E5%B1%8F%E5%B9%95%E4%BA%AE%E5%BA%A6/"><span class="iconfont icon-article"></span>通过laptop-mode-tools控制debian屏幕亮度</a></p><p><a class="link" href="/posts/%E6%8A%80%E6%9C%AF/erlang/erlang-rsa-%E6%95%B0%E5%AD%97%E7%AD%BE%E5%90%8D/"><span class="iconfont icon-article"></span>Erlang RSA 数字签名</a></p></section></div></section><section id="footer"><div class="footer-wrap">
+    <p class="copyright">Copyright ©2021-2099 Salman.</p></div>
+</section><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/&#43;DiW/UqRcLbRjq" crossorigin="anonymous"><script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l&#43;B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd&#43;qj&#43;o24G5ZU2zJz" crossorigin="anonymous"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+            onload="renderMathInElement(document.body);"></script><script src="/js/prism.min.a3995e4e31ad988992f22cde2df66a5efbb7cf211dbaba67dbf4c96efd0883c728a2f2ae94db1dbbe9b72893e18a9ed6.js" integrity="sha384-o5leTjGtmImS8izeLfZqXvu3zyEdurpn2/TJbv0Ig8coovKulNsdu&#43;m3KJPhip7W"></script><script>
+    var _hmt = _hmt || [];
+    (function() {
+        var hm = document.createElement("script");
+        hm.src = "https://hm.baidu.com/hm.js?2b59024f651488c102f34ca466295b1d";
+        var s = document.getElementsByTagName("script")[0]; 
+        s.parentNode.insertBefore(hm, s);
+    })();
+</script>    </body>
+
+</html>

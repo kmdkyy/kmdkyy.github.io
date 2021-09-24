@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh"><meta charset="utf-8"><meta name="generator" content="Hugo 0.88.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>时间复杂度相关&nbsp;&ndash;&nbsp;Salman</title><link rel="stylesheet" href="/css/core.min.5a2fa48694c926b82b28b322049d9f0cc663e4195aff3976c7ccb8dd3e8c391bc1b94c0827d7b55e0537ec9c0a6e5d8e.css" integrity="sha384-Wi&#43;khpTJJrgrKLMiBJ2fDMZj5Bla/zl2x8y43T6MORvBuUwIJ9e1XgU37JwKbl2O"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="时间复杂度相关" /><body><section id="header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><img class="site logo" src="/images/head/128.128.png" alt /><span class="site name">Salman</span></a></span>
+        <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/">最新</a><a class="nav item" href="/about">我</a><a class="nav item" href="/categories/%e7%94%9f%e6%b4%bb/">生活</a><a class="nav item" href="/categories/%e6%8a%80%e6%9c%af">技术</a><a class="nav item" href="/categories/">分类</a><a class="nav item" href="/tags/">标签</a></nav></div></span></div><div class="site slogan"><span class="title">时间会告诉我们，简单的喜欢最长远，平凡的陪伴最心安，懂你的人最温暖。</span></div></section><section id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">时间复杂度相关</h1><p class="article date">2021年8月27日 10:49:19</p></section><article class="article markdown-body"><h4 id="等差数列前n项的和">等差数列前n项的和</h4>
+<p>$$
+S_n=\frac{n(a_1+a_n)}{2}
+$$</p>
+<p>解：</p>
+<p>公差为$$d$$的等差数列的和，可表示为以下两种形式：</p>
+<p>$$S_n=(a_1+0d)+(a_1+1d)+(a_1+2d)+\cdots+[a_1+(n-2)d]+[a_1+(n-1)d]$$		(1)</p>
+<p>$$S_n=(a_n-0d)+(a_n-1d)+(a_n-2d)+\cdots+[a_n-(n-2)d]+[a_n-(n-1)d]$$		(2)</p>
+<p>(1) + (2)，得：</p>
+<p>$$
+2S_n=(a_1+a_n)\times n
+$$</p>
+<p>$$
+S_n=\frac{n(a_1+a_n)}{2}
+$$</p>
+<h4 id="变形">变形</h4>
+<p>代入等差数列通项公式$$a_n=a_1+(n-1)d$$得：</p>
+<p>$$
+S_n=\frac{n{a_1+[a_1+(n-1)d]}}{2}
+$$</p>
+<p>$$
+S_n=\frac{n[a_1+(a_1+nd-d)]}{2}
+$$</p>
+<p>$$
+S_n=\frac{n(a_1+a_1+nd-d)}{2}
+$$</p>
+<p>$$
+S_n=\frac{2na_1+n^2d-nd}{2}
+$$</p>
+<p>$$
+S_n=na_1+\frac{n(n-1)}{2}d
+$$</p>
+<h4 id="应用举例">应用举例</h4>
+<p>$$
+\sum_{a=1}^n1=n
+$$</p>
+<p>$$
+\sum_{a=1}^na=\frac{n(n+1)}{2}
+$$</p>
+<hr>
+<h4 id="等比数列前n项的和">等比数列前n项的和</h4>
+<p>$$
+S_n=\frac{a_1-a_nq}{1-q}(q\neq1)
+$$</p>
+<p>解：</p>
+<p>公比为$$q$$的等比数列的和，可表示为：</p>
+<p>$$S_n=a_1q^0+a_1q^1+a_1q^2+\cdots+a_1q^{(n-1)}$$		(1)</p>
+<p>(1)两边同乘以$$q$$，得：</p>
+<p>$$qS_n=a_1q+a_1q^2+a_1q^3+\cdots+a_1q^n$$		(2)</p>
+<p>(1)两边分别减去(2)两边，得：</p>
+<p>$$
+S_n-qS_n=a_1q^0+a_1q^n
+$$</p>
+<p>$$
+S_n(1-q)=a_1+a_1q^n
+$$</p>
+<p>$$
+S_n=\frac{a_1+a_1q^n}{1-q}(q\neq1)
+$$</p>
+<p>$$
+\because
+a_n=a_1q^{n-1},a_{(n+1)}=a_1q^n,a_{(n+1)}=a_nq
+$$</p>
+<p>$$
+即a_1q^n=a_{(n+1)}=a_nq
+$$</p>
+<p>$$
+\therefore
+S_n=\frac{a_1-a_nq}{1-q}(q\neq1)
+$$</p>
+<hr>
+<h4 id="应用举例-1">应用举例</h4>
+<p>求自然数1到$$n$$的平方和的公式，即求下列和式的公式：</p>
+<p>$$1^2+2^2+3^2+4^2+&hellip;+n^2$$		(1)</p>
+<p>解：</p>
+<p>设$$\alpha_n=1+2+3+4+\cdots+n$$		(2)</p>
+<p>令(1)比(2)，得</p>
+<p>$$
+\frac{S_n}{\alpha_n}=\frac{1}{1},\frac{5}{3},\frac{14}{6},\frac{30}{10},\frac{55}{15},\cdots
+$$</p>
+<p>即</p>
+<p>$$
+\frac{S_n}{\alpha_n}=\frac{3}{3},\frac{5}{3},\frac{7}{3},\frac{9}{3},\frac{11}{3},\cdots
+$$</p>
+<p>提取通项式为</p>
+<p>$$
+\frac{S_n}{\alpha_n}=\frac{2n+1}{3}
+$$</p>
+<p>因为已知$$\alpha_n$$为</p>
+<p>$$
+\alpha_n=\frac{n(n+1)}{2}
+$$</p>
+<p>所以有</p>
+<p>$$
+S_n=\frac{2n+1}{3}\times{\alpha_n}
+$$</p>
+<p>$$
+S_n=\frac{2n+1}{3}\times\frac{n(n+1)}{2}
+$$</p>
+<p>$$
+S_n=\frac{n(n+1)(2n+1)}{6}
+$$</p>
+<h4 id="归纳法证明94">归纳法证明94……</h4>
+<hr>
+<h4 id="应用举例-2">应用举例</h4>
+<p>$$
+\sum_{a=1}^n\sum_{b=1}^ab^2=1+5+14+30+\cdots+\frac{n(n+1)(2n+1)}{6}
+$$</p>
+<p>$$
+\sum_{a=1}^n\sum_{b=1}^ab=1+3+6+10+\cdots+\frac{n(n+1)}{2}
+$$</p>
+<p>设</p>
+<p>$$
+S_n=\sum_{a=1}^n\sum_{b=1}^ab^2
+$$</p>
+<p>$$
+\alpha_n=\sum_{a=1}^n\sum_{b=1}^ab
+$$</p>
+<p>则</p>
+<p>$$
+\frac{S_n}{\alpha_n}=\frac{1}{1},\frac{5}{3},\frac{14}{6},\frac{30}{10},\cdots,\frac{2n+1}{3}
+$$</p>
+<hr>
+<h4 id="应用举例-3">应用举例</h4>
+<p>$$
+\sum_{a=1}^n3^a=\frac{3-3^{n+1}}{1-3}
+$$</p>
+<p>$$
+\sum_{a=1}^n\frac{a(a+1)}{2}=\sum_{a=1}^n\frac{1}{2}(a^2+a)=\frac{1}{2}[\frac{n(n+1)(2n+1)}{6}+\frac{n(n+1)}{2}]=\frac{n(n+1)(n+2)}{6}
+$$</p>
+</article><section class="article labels"><a class="category" href=/categories/%E6%8A%80%E6%9C%AF/>技术</a><a class="category" href=/categories/%E4%B8%93%E4%B8%9A%E5%9F%BA%E7%A1%80/>专业基础</a><a class="tag" href=/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/>数据结构</a></section>
+</div>
+<div class="article bottom"><section class="article navigation"><p><a class="link" href="/posts/%E6%8A%80%E6%9C%AF/debian/debian-10%E6%96%87%E4%BB%B6%E8%AE%BF%E9%97%AE%E6%8E%A7%E5%88%B6%E5%88%97%E8%A1%A8/"><span class="iconfont icon-article"></span>文件访问控制列表</a></p><p><a class="link" href="/posts/%E6%8A%80%E6%9C%AF/postgresql/%E6%9F%A5%E7%9C%8B%E4%BF%AE%E6%94%B9postgresql%E6%97%B6%E5%8C%BA/"><span class="iconfont icon-article"></span>查看、修改postgresql时区</a></p></section></div></section><section id="footer"><div class="footer-wrap">
+    <p class="copyright">Copyright ©2021-2099 Salman.</p></div>
+</section><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/&#43;DiW/UqRcLbRjq" crossorigin="anonymous"><script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l&#43;B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd&#43;qj&#43;o24G5ZU2zJz" crossorigin="anonymous"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+            onload="renderMathInElement(document.body);"></script><script src="/js/prism.min.a3995e4e31ad988992f22cde2df66a5efbb7cf211dbaba67dbf4c96efd0883c728a2f2ae94db1dbbe9b72893e18a9ed6.js" integrity="sha384-o5leTjGtmImS8izeLfZqXvu3zyEdurpn2/TJbv0Ig8coovKulNsdu&#43;m3KJPhip7W"></script><script>
+    var _hmt = _hmt || [];
+    (function() {
+        var hm = document.createElement("script");
+        hm.src = "https://hm.baidu.com/hm.js?2b59024f651488c102f34ca466295b1d";
+        var s = document.getElementsByTagName("script")[0]; 
+        s.parentNode.insertBefore(hm, s);
+    })();
+</script>    </body>
+
+</html>

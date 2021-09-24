@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh"><meta charset="utf-8"><meta name="generator" content="Hugo 0.88.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>linux 谷歌浏览器参数大全&nbsp;&ndash;&nbsp;Salman</title><link rel="stylesheet" href="/css/core.min.5a2fa48694c926b82b28b322049d9f0cc663e4195aff3976c7ccb8dd3e8c391bc1b94c0827d7b55e0537ec9c0a6e5d8e.css" integrity="sha384-Wi&#43;khpTJJrgrKLMiBJ2fDMZj5Bla/zl2x8y43T6MORvBuUwIJ9e1XgU37JwKbl2O"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="linux 谷歌浏览器参数大全" /><body><section id="header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><img class="site logo" src="/images/head/128.128.png" alt /><span class="site name">Salman</span></a></span>
+        <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/">最新</a><a class="nav item" href="/about">我</a><a class="nav item" href="/categories/%e7%94%9f%e6%b4%bb/">生活</a><a class="nav item" href="/categories/%e6%8a%80%e6%9c%af">技术</a><a class="nav item" href="/categories/">分类</a><a class="nav item" href="/tags/">标签</a></nav></div></span></div><div class="site slogan"><span class="title">时间会告诉我们，简单的喜欢最长远，平凡的陪伴最心安，懂你的人最温暖。</span></div></section><section id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">linux 谷歌浏览器参数大全</h1><p class="article date">2021年8月27日 10:49:19</p></section><article class="article markdown-body"><h4 id="安装谷歌浏览器">安装谷歌浏览器</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">apt-get install fonts-liberation
+dpkg -i google-chrome-stable_current_amd64.deb
+</code></pre></div><h4 id="在root用户下不支持沙盒可以加--no-sandbox启动">在root用户下不支持沙盒，可以加&ndash;no-sandbox启动</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">google-chrome --no-sandbox
+</code></pre></div><h4 id="在root下打开chrome会出现no-sandbox的错误的解决方案">在root下打开chrome会出现no sandbox的错误的解决方案</h4>
+<ol>
+<li>
+<p>找到google-chrome文件，在目录/opt/google/chrome 下</p>
+</li>
+<li>
+<p>使用gedit打开该文件</p>
+</li>
+</ol>
+<p>    最后一行有</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">    <span class="nb">exec</span> -a <span class="s2">&#34;0&#34;&#34;
+</span><span class="s2">    HERE/chrome&#34;</span> <span class="s2">&#34;</span><span class="nv">$@</span><span class="s2">&#34;</span>
+</code></pre></div><p>    将其修改为</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">    <span class="nb">exec</span> -a <span class="s2">&#34;0&#34;&#34;
+</span><span class="s2">    HERE/chrome&#34;</span> <span class="s2">&#34;</span><span class="nv">$@</span><span class="s2">&#34;</span> --user-data-dir --no-sandbox
+</code></pre></div><ol start="3">
+<li>浏览器启动参数</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="nb">exec</span> google-chrome <span class="se">\
+</span><span class="se"></span>    --kiosk --start-fullscreen --incognito <span class="se">\
+</span><span class="se"></span>    --no-first-run <span class="se">\
+</span><span class="se"></span>    --disable-session-crashed-bubble <span class="se">\
+</span><span class="se"></span>    --disable-background-networking <span class="se">\
+</span><span class="se"></span>    --disable-infobars <span class="se">\
+</span><span class="se"></span>    --disable-restore-background-contents  <span class="se">\
+</span><span class="se"></span>    --disable-translate  <span class="se">\
+</span><span class="se"></span>    --disable-new-tab-first-run <span class="se">\
+</span><span class="se"></span>    --noerrdialogs <span class="se">\
+</span><span class="se"></span>    --no-sandbox <span class="se">\
+</span><span class="se"></span>    --incognito <span class="se">\
+</span><span class="se"></span>    --user-data-dir<span class="o">=</span>/tmp <span class="se">\
+</span><span class="se"></span>    --window-size<span class="o">=</span>1600,900 <span class="se">\
+</span><span class="se"></span>    http://localhost:3000
+</code></pre></div><ol start="4">
+<li>
+<p>因为echarts在多点触摸屏中，柱状图放大后不能左右拨动，还需要在启动时添加&ndash;touch-events启动参数</p>
+</li>
+<li>
+<p>注意添加&ndash;incognito参数，防止在重启后google-chrome浏览器提示恢复页面。</p>
+</li>
+</ol>
+<h4 id="chrome命令行参数">chrome命令行参数</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">disable-accelerated-compositing 禁用加速
+disable-winsta 禁用渲染备用窗口
+disable-application-cache 禁用应用程序缓存
+disable-audio 禁用音频
+disable-auth-negotiate-cname-lookup disable-background-networking 禁用后台联网
+disable-backing-store-limit 禁用存储数量限制，可以防止在打开大量的标签窗口时，页面出现闪烁的现象。
+disable-click-to-play 禁用点击播放
+disable-connect-backup-jobs 如果超过指定的时间，则禁用建立备份的TCP连接 disable-content-prefetch 禁用内容预取
+disable-databases 禁用HTML5的数据库支持
+disable-desktop-notifications 禁用桌面通知（默认窗口启用）
+disable-dev-tools 禁用所有页面的渲染检测
+disable-webgl 禁用WebGL实验功能
+disable-extensions 禁用扩展
+disable-extensions-file-access-check 禁用扩展文件访问检查
+disable-geolocation 禁用地理位置的
+JavaScript API disable-glsl-translator 禁用GLSL翻译
+disable-hang-monitor 禁止任务管理器监视功能
+disable-internal-flash 禁用内部的Flash Player
+disable-ipv6 禁用IPv6
+disable-javascript 禁用JS
+disable-java 禁用Java
+disable-local-storage 禁用本地存储
+disable-logging 禁用调试记录
+disable-new-tab-first-run 禁用新标签显示的通知
+disable-plugins 禁止插件
+disable-prompt-on-repost disable-remote-fonts 禁用远程字体
+disable-renderer-accessibility 禁用渲染辅助功能
+disable-restore-background-contents 当浏览器重新启动后之前的网址被记录 disable-session-storage 禁用会话存储
+disable-shared-workers 禁用共享，功能尚未完成
+disable-site-specific-quirks 禁用指定站点设置的WebKit兼容性问题。
+disable-speech-input 禁用语音输入
+disable-sync 禁用同步
+disable-sync-apps 禁用同步应用程序
+disable-sync-autofill 禁用同步自动填表
+disable-sync-bookmarks 禁用同步书签
+disable-sync-extensions 禁用同步扩展
+disable-sync-passwords 禁用同步密码
+disable-sync-preferences 禁用同步偏好设置
+disable-sync-sessions 禁用同步会话
+disable-sync-themes 禁用同步主题（皮肤）
+disable-sync-typed-urls 禁用同步输入网址
+disable-tab-closeable-state-watcher
+disable-translate 禁用翻译
+disable-web-resources 禁用网络资源后台加载服务
+disable-web-security 禁用网络安全提示?
+disable-web-sockets 禁用网络接口
+safebrowsing-disable-auto-update 禁用自动升级<span class="o">(</span>安全浏览<span class="o">)</span>
+disable-tls 禁用设置XMPP协议的客户端同步控制
+disable-flash-core-animation 禁用Flash核心动画
+disable-hole-punching 禁用Punching
+disable-seccomp-sandbox 禁用沙盒
+no-sandbox 启动无沙盒模式运行
+</code></pre></div></article><section class="article labels"><a class="category" href=/categories/%E6%8A%80%E6%9C%AF/>技术</a><a class="category" href=/categories/linux/>linux</a><a class="tag" href=/tags/%E8%BD%AF%E4%BB%B6/>软件</a><a class="tag" href=/tags/%E6%B5%8F%E8%A7%88%E5%99%A8/>浏览器</a></section>
+</div>
+<div class="article bottom"><section class="article navigation"><p><a class="link" href="/posts/%E6%8A%80%E6%9C%AF/linux/linux-terminal-%E7%BC%A9%E7%9F%AD%E5%91%BD%E4%BB%A4%E8%A1%8C%E6%8F%90%E7%A4%BA%E7%AC%A6/"><span class="iconfont icon-article"></span>Linux Terminal 缩短命令行提示符</a></p><p><a class="link" href="/posts/%E6%8A%80%E6%9C%AF/linux/linux%E8%AE%BE%E7%BD%AE%E6%96%87%E4%BB%B6%E5%A4%B9%E5%8F%AF%E8%AF%BB%E5%86%99%E4%BD%86%E6%98%AF%E4%B8%8D%E8%83%BD%E5%88%A0%E9%99%A4%E6%9D%83%E9%99%90%E5%91%BD%E4%BB%A4/"><span class="iconfont icon-article"></span>Linux设置文件夹可读写但是不能删除权限命令</a></p></section></div></section><section id="footer"><div class="footer-wrap">
+    <p class="copyright">Copyright ©2021-2099 Salman.</p></div>
+</section><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/&#43;DiW/UqRcLbRjq" crossorigin="anonymous"><script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l&#43;B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd&#43;qj&#43;o24G5ZU2zJz" crossorigin="anonymous"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+            onload="renderMathInElement(document.body);"></script><script src="/js/prism.min.a3995e4e31ad988992f22cde2df66a5efbb7cf211dbaba67dbf4c96efd0883c728a2f2ae94db1dbbe9b72893e18a9ed6.js" integrity="sha384-o5leTjGtmImS8izeLfZqXvu3zyEdurpn2/TJbv0Ig8coovKulNsdu&#43;m3KJPhip7W"></script><script>
+    var _hmt = _hmt || [];
+    (function() {
+        var hm = document.createElement("script");
+        hm.src = "https://hm.baidu.com/hm.js?2b59024f651488c102f34ca466295b1d";
+        var s = document.getElementsByTagName("script")[0]; 
+        s.parentNode.insertBefore(hm, s);
+    })();
+</script>    </body>
+
+</html>

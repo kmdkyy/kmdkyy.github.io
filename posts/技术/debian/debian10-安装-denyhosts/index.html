@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh"><meta charset="utf-8"><meta name="generator" content="Hugo 0.88.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title> 安装 DenyHosts&nbsp;&ndash;&nbsp;Salman</title><link rel="stylesheet" href="/css/core.min.5a2fa48694c926b82b28b322049d9f0cc663e4195aff3976c7ccb8dd3e8c391bc1b94c0827d7b55e0537ec9c0a6e5d8e.css" integrity="sha384-Wi&#43;khpTJJrgrKLMiBJ2fDMZj5Bla/zl2x8y43T6MORvBuUwIJ9e1XgU37JwKbl2O"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content=" 安装 DenyHosts" /><body><section id="header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><img class="site logo" src="/images/head/128.128.png" alt /><span class="site name">Salman</span></a></span>
+        <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/">最新</a><a class="nav item" href="/about">我</a><a class="nav item" href="/categories/%e7%94%9f%e6%b4%bb/">生活</a><a class="nav item" href="/categories/%e6%8a%80%e6%9c%af">技术</a><a class="nav item" href="/categories/">分类</a><a class="nav item" href="/tags/">标签</a></nav></div></span></div><div class="site slogan"><span class="title">时间会告诉我们，简单的喜欢最长远，平凡的陪伴最心安，懂你的人最温暖。</span></div></section><section id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title"> 安装 DenyHosts</h1><p class="article date">2021年8月27日 8:49:19</p></section><article class="article markdown-body"><p>    DenyHosts是由Phil Schwartz开发并由许多开发人员维护的实用程序，旨在阻止sshd（ssh服务器）暴力攻击。最新版DenyHosts-3.1已支持在Debian10只有Python3下面使用，快来试试！</p>
+<h3 id="首先安装工具">首先安装工具</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="c1"># apt install git python3-pip</span>
+</code></pre></div><h3 id="安装denyhosts">安装DenyHosts</h3>
+<p>    为了方便以后卸载，加上了（&ndash;record log）参数。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="c1"># git clone https://github.com/denyhosts/denyhosts.git</span>
+<span class="c1"># cd denyhosts</span>
+<span class="c1"># python3 setup.py install --record log</span>
+</code></pre></div><p>以下是安装时部分输出结果：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">running install_scripts
+copying build/scripts-3.7/denyhosts.py -&gt; /usr/local/bin
+copying build/scripts-3.7/daemon-control-dist -&gt; /usr/local/bin
+changing mode of /usr/local/bin/denyhosts.py to <span class="m">755</span>
+changing mode of /usr/local/bin/daemon-control-dist to <span class="m">755</span>
+running install_data
+copying denyhosts.conf -&gt; /etc
+copying denyhosts.8 -&gt; /usr/share/man/man8
+running install_egg_info
+Writing /usr/local/lib/python3.7/dist-packages/DenyHosts-3.1.2.egg-info
+writing list of installed files to <span class="s1">&#39;log&#39;</span>
+</code></pre></div><p>    从输出信息可以看到安装后文件的路径</p>
+<h3 id="现在需要做一下修正以使其能正确运行">现在需要做一下修正以使其能正确运行</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="c1"># cd /usr/local/bin</span>
+<span class="c1"># ln -s daemon-control-dist daemon-control</span>
+<span class="c1"># vim daemon-control</span>
+</code></pre></div><p><em>修改18，22行如下</em></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="m">18</span> <span class="nv">DENYHOSTS_BIN</span> <span class="o">=</span> <span class="s2">&#34;/usr/local/bin/denyhosts.py&#34;</span>
+<span class="m">19</span> <span class="nv">DENYHOSTS_LOCK</span> <span class="o">=</span> <span class="s2">&#34;/run/denyhosts.pid&#34;</span>
+<span class="m">20</span> <span class="nv">DENYHOSTS_CFG</span> <span class="o">=</span> <span class="s2">&#34;/etc/denyhosts.conf&#34;</span>
+<span class="m">21</span>
+<span class="m">22</span> <span class="nv">PYTHON_BIN</span> <span class="o">=</span> <span class="s2">&#34;/usr/bin/env python3&#34;</span>
+</code></pre></div><h3 id="试运行一下">试运行一下</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="c1"># daemon-control start --noemail</span>
+</code></pre></div><h3 id="检查是否运行">检查是否运行</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="c1"># ps -aux | grep denyhosts</span>
+root       <span class="m">808</span>  0.0  0.3  <span class="m">29220</span> <span class="m">13304</span> ?        S    15:21   0:00 python3 /usr/local/bin/denyhosts.py --daemon --config<span class="o">=</span>/etc/denyhosts.conf
+root       <span class="m">810</span>  0.0  0.0   <span class="m">3084</span>   <span class="m">880</span> pts/0    S+   15:21   0:00 grep denyhosts
+</code></pre></div><h3 id="检查是否运行-1">检查是否运行</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="c1"># daemon-control status</span>
+</code></pre></div><h3 id="停止denyhosts">停止denyhosts</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="c1"># daemon-control stop</span>
+</code></pre></div><h3 id="查看攻击ip-记录">查看攻击ip 记录</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="c1"># vi /etc/hosts.deny</span>
+</code></pre></div><h3 id="添加信任ip">添加信任IP</h3>
+<p><em>编辑/etc/hosts.allow，将自己常用的IP加进去：</em></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">sshd: 202.113.*.*: allow
+</code></pre></div><p><em>默认配置就能很好的工作，如要个性化设置可以修改 /etc/denyhosts.conf：</em></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">$ vi /etc/denyhosts.conf  
+<span class="nv">SECURE_LOG</span> <span class="o">=</span> /var/log/auth.log <span class="c1">#ssh 日志文件，它是根据这个文件来判断的。  </span>
+<span class="nv">HOSTS_DENY</span> <span class="o">=</span> /etc/hosts.deny <span class="c1">#控制用户登陆的文件  </span>
+<span class="nv">PURGE_DENY</span> <span class="o">=</span> <span class="c1">#过多久后清除已经禁止的，空表示永远不解禁  </span>
+<span class="nv">BLOCK_SERVICE</span> <span class="o">=</span> sshd <span class="c1">#禁止的服务名，如还要添加其他服务，只需添加逗号跟上相应的服务即可  </span>
+<span class="nv">DENY_THRESHOLD_INVALID</span> <span class="o">=</span> <span class="m">5</span> <span class="c1">#允许无效用户失败的次数  </span>
+<span class="nv">DENY_THRESHOLD_VALID</span> <span class="o">=</span> <span class="m">10</span> <span class="c1">#允许普通用户登陆失败的次数  </span>
+<span class="nv">DENY_THRESHOLD_ROOT</span> <span class="o">=</span> <span class="m">1</span> <span class="c1">#允许root登陆失败的次数  </span>
+<span class="nv">DENY_THRESHOLD_RESTRICTED</span> <span class="o">=</span> <span class="m">1</span> 
+<span class="nv">WORK_DIR</span> <span class="o">=</span> /var/lib/denyhosts <span class="c1">#运行目录  </span>
+<span class="nv">SUSPICIOUS_LOGIN_REPORT_ALLOWED_HOSTS</span><span class="o">=</span>YES 
+<span class="nv">HOSTNAME_LOOKUP</span><span class="o">=</span>YES <span class="c1">#是否进行域名反解析  </span>
+<span class="nv">LOCK_FILE</span> <span class="o">=</span> /var/run/denyhosts.pid <span class="c1">#程序的进程ID  </span>
+<span class="nv">ADMIN_EMAIL</span> <span class="o">=</span> root@localhost <span class="c1">#管理员邮件地址,它会给管理员发邮件  </span>
+<span class="nv">SMTP_HOST</span> <span class="o">=</span> localhost 
+<span class="nv">SMTP_PORT</span> <span class="o">=</span> <span class="m">25</span> 
+<span class="nv">SMTP_FROM</span> <span class="o">=</span> DenyHosts &lt;nobody@localhost&gt; 
+<span class="nv">SMTP_SUBJECT</span> <span class="o">=</span> DenyHosts Report  
+<span class="nv">AGE_RESET_VALID</span><span class="o">=</span>5d <span class="c1">#用户的登录失败计数会在多久以后重置为0，(h表示小时，d表示天，m表示月，w表示周，y表示年)  </span>
+<span class="nv">AGE_RESET_ROOT</span><span class="o">=</span>25d 
+<span class="nv">AGE_RESET_RESTRICTED</span><span class="o">=</span>25d 
+<span class="nv">AGE_RESET_INVALID</span><span class="o">=</span>10d 
+<span class="nv">RESET_ON_SUCCESS</span> <span class="o">=</span> yes <span class="c1">#如果一个ip登陆成功后，失败的登陆计数是否重置为0  </span>
+<span class="nv">DAEMON_LOG</span> <span class="o">=</span> /var/log/denyhosts <span class="c1">#自己的日志文件  </span>
+<span class="nv">DAEMON_SLEEP</span> <span class="o">=</span> 30s <span class="c1">#当以后台方式运行时，每读一次日志文件的时间间隔。  </span>
+<span class="nv">DAEMON_PURGE</span> <span class="o">=</span> 1h <span class="c1">#当以后台方式运行时，清除机制在 HOSTS_DENY 中终止旧条目的时间间隔,这个会影响PURGE_DENY的间隔。</span>
+</code></pre></div></article><section class="article labels"><a class="category" href=/categories/%E6%8A%80%E6%9C%AF/>技术</a><a class="category" href=/categories/linux/>Linux</a><a class="tag" href=/tags/debian/>debian</a><a class="tag" href=/tags/denyhosts/>DenyHosts</a><a class="tag" href=/tags/ssh/>ssh</a></section>
+</div>
+<div class="article bottom"><section class="article navigation"><p><a class="link" href="/posts/%E7%94%9F%E6%B4%BB/%E5%85%B3%E4%BA%8E%E8%B7%91%E6%AD%A5/"><span class="iconfont icon-article"></span>关于跑步</a></p><p><a class="link" href="/posts/%E6%8A%80%E6%9C%AF/debian/debian-10%E7%A1%AC%E7%9B%98%E5%A4%87%E4%BB%BD%E6%81%A2%E5%A4%8D/"><span class="iconfont icon-article"></span> 硬盘备份恢复</a></p></section></div></section><section id="footer"><div class="footer-wrap">
+    <p class="copyright">Copyright ©2021-2099 Salman.</p></div>
+</section><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/&#43;DiW/UqRcLbRjq" crossorigin="anonymous"><script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l&#43;B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd&#43;qj&#43;o24G5ZU2zJz" crossorigin="anonymous"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+            onload="renderMathInElement(document.body);"></script><script src="/js/prism.min.a3995e4e31ad988992f22cde2df66a5efbb7cf211dbaba67dbf4c96efd0883c728a2f2ae94db1dbbe9b72893e18a9ed6.js" integrity="sha384-o5leTjGtmImS8izeLfZqXvu3zyEdurpn2/TJbv0Ig8coovKulNsdu&#43;m3KJPhip7W"></script><script>
+    var _hmt = _hmt || [];
+    (function() {
+        var hm = document.createElement("script");
+        hm.src = "https://hm.baidu.com/hm.js?2b59024f651488c102f34ca466295b1d";
+        var s = document.getElementsByTagName("script")[0]; 
+        s.parentNode.insertBefore(hm, s);
+    })();
+</script>    </body>
+
+</html>

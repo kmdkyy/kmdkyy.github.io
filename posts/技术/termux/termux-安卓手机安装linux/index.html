@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh"><meta charset="utf-8"><meta name="generator" content="Hugo 0.88.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>termux 安卓手机安装linux&nbsp;&ndash;&nbsp;Salman</title><link rel="stylesheet" href="/css/core.min.5a2fa48694c926b82b28b322049d9f0cc663e4195aff3976c7ccb8dd3e8c391bc1b94c0827d7b55e0537ec9c0a6e5d8e.css" integrity="sha384-Wi&#43;khpTJJrgrKLMiBJ2fDMZj5Bla/zl2x8y43T6MORvBuUwIJ9e1XgU37JwKbl2O"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="termux 安卓手机安装linux" /><body><section id="header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><img class="site logo" src="/images/head/128.128.png" alt /><span class="site name">Salman</span></a></span>
+        <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/">最新</a><a class="nav item" href="/about">我</a><a class="nav item" href="/categories/%e7%94%9f%e6%b4%bb/">生活</a><a class="nav item" href="/categories/%e6%8a%80%e6%9c%af">技术</a><a class="nav item" href="/categories/">分类</a><a class="nav item" href="/tags/">标签</a></nav></div></span></div><div class="site slogan"><span class="title">时间会告诉我们，简单的喜欢最长远，平凡的陪伴最心安，懂你的人最温暖。</span></div></section><section id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">termux 安卓手机安装linux</h1><p class="article date">2021年8月27日 10:49:19</p></section><article class="article markdown-body"><h4 id="设置默认编辑器">设置默认编辑器</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="nb">export</span> <span class="nv">EDITOR</span><span class="o">=</span>nano
+</code></pre></div><h4 id="修改更新源">修改更新源</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">apt edit-sources
+</code></pre></div><p>修改成清华大学的源：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">deb https://mirrors.tuna.tsinghua.edu.cn/termux/termux-packages-24 stable main
+</code></pre></div><h4 id="更新升级系统">更新升级系统</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">apt-get update
+apt-get upgrade
+</code></pre></div><h4 id="安装工具">安装工具</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">apt-get install wget
+apt-get install proot
+apt-get install vim
+apt-get install tree
+apt-get install git
+apt-get install erlang
+</code></pre></div><h4 id="安装ssh">安装SSH</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">apt-get install openssh
+</code></pre></div><h4 id="远程连接电脑">远程连接电脑</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="c1"># ssh -p 端口号 用户名@主机名或者IP</span>
+ssh -p <span class="m">22</span> user@hostname_or_ip
+<span class="c1"># ssh -i 私钥 用户名@主机名或者IP</span>
+ssh -i id_rsa user@hostname_or_ip
+</code></pre></div><p>例如：<code>ssh sqlsec@192.168.1.8</code></p>
+<h4 id="传输文件">传输文件</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="c1"># scp 本地文件路径 远程主机用户名@远程主机名或IP:远程文件保存的位置路径</span>
+scp local_file remote_username@remote_ip:remote_folder
+</code></pre></div><h4 id="传输目录">传输目录</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="c1"># scp -r 本地文件夹路径 远程主机用户名@远程主机名或IP:远程文件夹保存的位置路径</span>
+scp -r local_folder remote_username@remote_ip:remote_folder
+</code></pre></div><h4 id="电脑-ssh-连接-termux">电脑 ssh 连接 Termux</h4>
+<h5 id="1-启动-ssh-服务">1. 启动 ssh 服务</h5>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">sshd
+</code></pre></div><p>    因为手机上面低的端口有安全限制，所以这里 openssh 默认的 sshd 默认的服务端口号为 8022</p>
+<p>停止 ssh 服务</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">pkill sshd
+</code></pre></div><h5 id="2-ssh-通过密码认证连接">2. SSH 通过密码认证连接</h5>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">vi <span class="nv">$PREFIX</span>/etc/ssh/sshd_config
+PrintMotd : 是否显示登录成功的欢迎信息 例如上次登入的时间、地点等
+PasswordAuthentication: 是否启用密码认证
+Subsystem: SFTP 服务相关的设定
+</code></pre></div><p>    执行 passwd 命令可以直接修改密码:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">passwd
+</code></pre></div><p>    Termux 的 ssh 和常规 Linux 不太一样，连接的时候不需要指定用户名</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">ssh 192.168.31.124 -p <span class="m">8022</span>
+</code></pre></div><h5 id="3-ssh-通过公私钥连接">3. SSH 通过公私钥连接</h5>
+<p>    PC 端生成公私钥，然后将 公钥 拷贝到 Termux 中，通过公私钥连接。</p>
+<p>    Termux 端生成公私钥，然后将 私钥拷贝到 PC 中，通过公私钥连接。</p>
+<p>    首先在PC端生成秘钥对:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">ssh-keygen
+</code></pre></div><p>    默认一直回车下去:</p>
+<p>    此时会在~/.ssh目录下生成 3 个文件</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">id_rsa， id_rsa.pub，known_hosts
+</code></pre></div><p>    然后需要把公钥 id_rsa.pub 拷贝到手机的 data\data\com.termux\files\home.ssh 文件夹中。</p>
+<p>    然后将公钥拷贝到验证文件中</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">cat id_rsa.pub &gt; authorized_keys
+</code></pre></div><hr>
+<p>    关掉密码登录</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">vim <span class="nv">$PREFIX</span>/etc/ssh/sshd_config
+</code></pre></div><p>    将</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">PasswordAuthentication yes
+</code></pre></div><p>    修改为</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">PasswordAuthentication no
+</code></pre></div><hr>
+<p>    然后记得重启一下 SSH 服务：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">pkill sshd<span class="p">;</span>sshd
+</code></pre></div><p>    然后电脑端这边直接就可以通过公私钥连接了，无需输入密码也更加安全：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">ssh 192.168.31.124 -p <span class="m">8022</span>
+</code></pre></div><h4 id="4-在termux-端生成公私钥首先在-termux-端生成秘钥对">4. 在Termux 端生成公私钥，首先在 Termux 端生成秘钥对:</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">ssh-keyge
+</code></pre></div><p>    此时会在~/.ssh目录下生成 3 个文件</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">id_rsa， id_rsa.pub，known_hosts
+</code></pre></div><p>    然后将公钥拷贝到验证文件中</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">cat id_rsa.pub &gt; authorized_keys
+</code></pre></div><p>    接着将id_rsa.pub私钥下载下来，拷贝到PC端上，并赋予 600 的权限：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">chmod <span class="m">600</span> id_rsa
+</code></pre></div><p>    然后通过-i 手动加载私钥的方式也可以成功连接到 Termux:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">ssh -i id_rsa root@192.168.31.124 -p <span class="m">8022</span>
+</code></pre></div><p>    至此，Termux ssh 连接的 3 种方式都演示过了，建议使用 PC 端生成公私钥 的方法，这样可以减少 rsa 私钥泄露的风险，也方便PC端的远程连接与管理。</p>
+<hr>
+<h4 id="定制常用按键">定制常用按键</h4>
+<p>    在 Termux v0.66 的版本之后我们可以通过 ~/.termux/termux.properties 文件来定制我们的常用功能按键，默认是不存在这个文件的，我们得自己配置创建一下这个文件。</p>
+<p>下面做尝试简单配置一下这个文件:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="c1"># 新建并编辑配置文件</span>
+vim ~/.termux/termux.properties
+</code></pre></div><p>内容为：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">extra-keys <span class="o">=</span> <span class="o">[</span> <span class="se">\
+</span><span class="se"></span> <span class="o">[</span><span class="s1">&#39;ESC&#39;</span>,<span class="s1">&#39;|&#39;</span>,<span class="s1">&#39;/&#39;</span>,<span class="s1">&#39;HOME&#39;</span>,<span class="s1">&#39;UP&#39;</span>,<span class="s1">&#39;END&#39;</span>,<span class="s1">&#39;PGUP&#39;</span>,<span class="s1">&#39;DEL&#39;</span><span class="o">]</span>, <span class="se">\
+</span><span class="se"></span> <span class="o">[</span><span class="s1">&#39;TAB&#39;</span>,<span class="s1">&#39;CTRL&#39;</span>,<span class="s1">&#39;ALT&#39;</span>,<span class="s1">&#39;LEFT&#39;</span>,<span class="s1">&#39;DOWN&#39;</span>,<span class="s1">&#39;RIGHT&#39;</span>,<span class="s1">&#39;PGDN&#39;</span>,<span class="s1">&#39;BKSP&#39;</span><span class="o">]</span> <span class="se">\
+</span><span class="se"></span><span class="o">]</span>
+</code></pre></div><p>    如果无法创建这个文件，那么得首先新建一下这个目录 mkdir ~/.termux</p>
+<p>    修改完成保存文件后，重启 Termux app生效配置</p>
+<p>常用符号格式：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">extra-keys <span class="o">=</span> <span class="o">[</span> <span class="se">\
+</span><span class="se"></span>        <span class="o">[</span><span class="s1">&#39;APOSTROPHE&#39;</span>,<span class="s1">&#39;%&#39;</span>,<span class="s1">&#39;*&#39;</span>,<span class="s1">&#39;(&#39;</span>,<span class="s1">&#39;)&#39;</span>,<span class="s1">&#39;_&#39;</span>,<span class="s1">&#39;?&#39;</span>,<span class="s1">&#39;UP&#39;</span>,<span class="s1">&#39;-&#39;</span><span class="o">]</span>, <span class="se">\
+</span><span class="se"></span>        <span class="o">[</span><span class="s1">&#39;+&#39;</span>,<span class="s1">&#39;=&#39;</span>,<span class="s1">&#39;BACKSLASH&#39;</span>,<span class="s1">&#39;/&#39;</span>,<span class="s1">&#39;&lt;&#39;</span>,<span class="s1">&#39;&gt;&#39;</span>,<span class="s1">&#39;LEFT&#39;</span>,<span class="s1">&#39;DOWN&#39;</span>,<span class="s1">&#39;RIGHT&#39;</span><span class="o">]</span>, <span class="se">\
+</span><span class="se"></span>        <span class="o">[</span><span class="s1">&#39;ESC&#39;</span>,<span class="s1">&#39;TAB&#39;</span>,<span class="s1">&#39;CTRL&#39;</span>,<span class="s1">&#39;HOME&#39;</span>,<span class="s1">&#39;END&#39;</span>,<span class="s1">&#39;QUOTE&#39;</span>,<span class="s1">&#39;[&#39;</span>,<span class="s1">&#39;]&#39;</span>,<span class="s1">&#39;:&#39;</span><span class="o">]</span> <span class="se">\
+</span><span class="se"></span><span class="o">]</span>
+</code></pre></div><p>    可以直接输入特殊的字符串，例如上面的例子中的|就是一个字符串，此外 Termux 还有封装了一些特殊按键，入上面例子中的ESC就是 Termux 自带的按键，完整的特殊按键表如下：</p>
+<p>按键 	说明</p>
+<pre><code>    + CTRL 	特殊按键
+    + ALT 	特殊按键
+    + FN 	特殊按键
+    + ESC 	退出键
+    + TAB 	表格键
+    + HOME 	原位键
+    + END 	结尾键
+    + PGUP 	上翻页键
+    + PGDN 	下翻页键
+    + INS 	插入键
+    + DEL 	删除键
+    + BKSP 	退格键
+    + UP 	方向键 上
+    + LEFT 	方向键 左
+    + RIGHT 	方向键 右
+    + DOWN 	方向键 下
+    + ENTER 	回车键
+    + BACKSLASH 	反斜杠 \
+    + QUOTE 	双引号键
+    + APOSTROPHE 	单引号键
+    + F1~F12 	F1-F12按键
+</code></pre>
+<p>    上面列出的三个特殊键中的每一个最多只能在附加键定义中列出一次，超过次数将会报错。</p>
+<h4 id="终端配色方案">终端配色方案</h4>
+<p>    脚本项目地址：https://github.com/Cabbagec/termux-ohmyzsh/</p>
+<p>    该脚本主要使用了zsh来替代bash作为默认 shell，并且支持色彩和字体样式，同时也激活了外置存储，可以直接访问SD卡下的目录。主题默认为 agnoster，颜色样式默认为 Tango，字体默认为 Ubuntu。</p>
+<p>执行下面这个命令确保已经安装好了 curl 命令</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">sh -c <span class="s2">&#34;</span><span class="k">$(</span>curl -fsSL https://github.com/Cabbagec/termux-ohmyzsh/raw/master/install.sh<span class="k">)</span><span class="s2">&#34;</span>
+</code></pre></div><p>    如果因为不可抗力的原因，出现port 443: Connection refused网络超时的情况，那么执行下面国光迁移到国内的地址的命令即可：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">sh -c <span class="s2">&#34;</span><span class="k">$(</span>curl -fsSL https://html.sqlsec.com/termux-install.sh<span class="k">)</span><span class="s2">&#34;</span>
+</code></pre></div><p>    Android6.0 以上会弹框确认是否授权访问文件,点击始终允许授权后 Termux 可以方便的访问SD卡文件。</p>
+<p>    手机 App 默认只能访问自己的数据，如果要访问手机的存储，需要请求权限，如果你刚刚不小心点了拒绝的话，那么可以执行以下命令来重新获取访问权限:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">termux-setup-storage
+</code></pre></div><p>脚本允许后先后有如下两个选项:</p>
+<pre><code>    Enter a number, leave blank to not to change: 14
+    Enter a number, leave blank to not to change: 6
+</code></pre>
+<p>    分别选择色彩样式和字体样式，重启Termux app后生效配置。不满意刚刚的效果，想要继续更改配色方案的话，可以根据下面命令来更改对应的色彩</p>
+<h5 id="配色方案">配色方案</h5>
+<p>设置色彩样式：</p>
+<p>输入chcolor命令更换色彩样式，或者：~/.termux/colors.sh命令</p>
+<h5 id="设置字体">设置字体</h5>
+<p>运行chfont更换字体，或者：~/.termux/fonts.sh命令</p>
+<h5 id="管理员身份">管理员身份</h5>
+<p>手机没有root，利用proot工具来模拟某些需要root的环境</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">pkg install proot
+</code></pre></div><p>然后终端下面输入:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">termux-chroot
+</code></pre></div><p>    即可模拟root环境</p>
+<p>    在这个proot环境下面,相当于是进入了home目录,可以很方便地进行一些配置.</p>
+<p>    在管理员身份下，输入exit可回到普通用户身份。</p>
+<p>手机已经root，安装tsu,这是一个su的termux版本,用来在termux上替代su:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">pkg install tsu
+</code></pre></div><p>然后终端下面输入:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">tsu
+</code></pre></div><p>    即可切换root用户,这个时候会弹出root授权提示,给予其root权限。</p>
+<p>    在管理员身份下，输入exit可回到普通用户身份。</p>
+<p>访问手机其它目录执行：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">termux-setup-storage
+</code></pre></div><p>    然后会在&quot;～/&ldquo;目录下生成storage目录，“～/storage/shared/&ldquo;目录就是你的手机存储的别的App的目录</p>
+</article><section class="article labels"><a class="category" href=/categories/%E6%8A%80%E6%9C%AF/>技术</a><a class="category" href=/categories/linux/>linux</a><a class="tag" href=/tags/termux/>Termux</a><a class="tag" href=/tags/%E5%AE%89%E5%8D%93/>安卓</a></section>
+</div>
+<div class="article bottom"><section class="article navigation"><p><a class="link" href="/posts/%E6%8A%80%E6%9C%AF/erlang/supervisor%E5%90%AF%E5%8A%A8%E6%99%AE%E9%80%9A%E8%BF%9B%E7%A8%8B/"><span class="iconfont icon-article"></span>supervisor启动普通进程</a></p><p><a class="link" href="/posts/%E6%8A%80%E6%9C%AF/termux/termux-%E5%AE%89%E8%A3%85-mariadb/"><span class="iconfont icon-article"></span>Termux 安装 MariaDB</a></p></section></div></section><section id="footer"><div class="footer-wrap">
+    <p class="copyright">Copyright ©2021-2099 Salman.</p></div>
+</section><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/&#43;DiW/UqRcLbRjq" crossorigin="anonymous"><script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l&#43;B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd&#43;qj&#43;o24G5ZU2zJz" crossorigin="anonymous"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+            onload="renderMathInElement(document.body);"></script><script src="/js/prism.min.a3995e4e31ad988992f22cde2df66a5efbb7cf211dbaba67dbf4c96efd0883c728a2f2ae94db1dbbe9b72893e18a9ed6.js" integrity="sha384-o5leTjGtmImS8izeLfZqXvu3zyEdurpn2/TJbv0Ig8coovKulNsdu&#43;m3KJPhip7W"></script><script>
+    var _hmt = _hmt || [];
+    (function() {
+        var hm = document.createElement("script");
+        hm.src = "https://hm.baidu.com/hm.js?2b59024f651488c102f34ca466295b1d";
+        var s = document.getElementsByTagName("script")[0]; 
+        s.parentNode.insertBefore(hm, s);
+    })();
+</script>    </body>
+
+</html>

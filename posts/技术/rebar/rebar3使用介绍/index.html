@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh"><meta charset="utf-8"><meta name="generator" content="Hugo 0.88.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>Rebar3使用介绍&nbsp;&ndash;&nbsp;Salman</title><link rel="stylesheet" href="/css/core.min.5a2fa48694c926b82b28b322049d9f0cc663e4195aff3976c7ccb8dd3e8c391bc1b94c0827d7b55e0537ec9c0a6e5d8e.css" integrity="sha384-Wi&#43;khpTJJrgrKLMiBJ2fDMZj5Bla/zl2x8y43T6MORvBuUwIJ9e1XgU37JwKbl2O"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Rebar3使用介绍" /><body><section id="header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><img class="site logo" src="/images/head/128.128.png" alt /><span class="site name">Salman</span></a></span>
+        <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/">最新</a><a class="nav item" href="/about">我</a><a class="nav item" href="/categories/%e7%94%9f%e6%b4%bb/">生活</a><a class="nav item" href="/categories/%e6%8a%80%e6%9c%af">技术</a><a class="nav item" href="/categories/">分类</a><a class="nav item" href="/tags/">标签</a></nav></div></span></div><div class="site slogan"><span class="title">时间会告诉我们，简单的喜欢最长远，平凡的陪伴最心安，懂你的人最温暖。</span></div></section><section id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">Rebar3使用介绍</h1><p class="article date">2021年8月27日 10:49:19</p></section><article class="article markdown-body"><h3 id="安装">安装</h3>
+<h4 id="1-使用源码安装">1. 使用源码安装</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">$ git clone https://github.com/erlang/rebar3.git
+$ <span class="nb">cd</span> rebar3
+$ ./bootstrap
+</code></pre></div><h4 id="2-直接下载编译好的二进制文件">2. 直接下载编译好的二进制文件</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">$ wget https://s3.amazonaws.com/rebar3/rebar3 <span class="o">&amp;&amp;</span> chmod +x rebar3
+</code></pre></div><p>    如果要在windows下使用的话，需要额外制作一个rebar3.bat rebar3.cmd用来调用</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">@echo off
+setlocal
+<span class="nb">set</span> <span class="nv">rebarscript</span><span class="o">=</span>%~f0
+escript.exe <span class="s2">&#34;%rebarscript:.cmd=%&#34;</span> %*
+</code></pre></div><p>    当然要求erlang环境，escript必须在path中，如果用过rebar，和以前的rebar.bat rebar.cmd作用是一样的，不过现在IDEA的erlang插件已经支持了，如果使用IDEA就不用通过脚本调用。</p>
+<p>    加入到环境变量中</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">./rebar3 <span class="nb">local</span> install
+</code></pre></div><p>    后续更新，可以通过命令直接更新到最新稳定版本</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">rebar3 <span class="nb">local</span> upgrade
+</code></pre></div><h3 id="基础用法">基础用法</h3>
+<h4 id="1-创建一个新的app或者release">1. 创建一个新的app或者release</h4>
+<p>    rebar3推荐两种主流方式管理项目：单个app结构的管理或者伞状管理</p>
+<p>    单个app方式是根目录中只有一个app，源代码存放在src目录，这种格式主要用来做库，处于共享的目的，例如recon，虽然一般把这种目录方式认为成一个库项目，但是这种结构还是可以发布</p>
+<p>    伞状项目的特点是包含了多个独立的OTP app，通常位于apps/ 或者 lib/目录中，这些app都可以有自己的rebar.config这种格式一般用于项目开发，项目可以拥有一个或多个主app，不一定只能有一个</p>
+<p>    rebar3提供了命令用来新建任意类型的模板，可通过rebar3 new template project-name命令调用。该template值可以是下面的任意值：</p>
+<pre><code>app: 具有监督树和state维护的一个OTP application，作为一个单独的app
+
+lib: 没有监督树的OTP application，一般用来将多个模块组合起来作为一个单独的项目
+
+release: 准备发布的伞状项目，比app项目多了config目录下的sys.config，和vm.args，用来描述运行环境
+
+escript: 一种基于app的项目，将来可以构建成escript脚本
+
+plugin: 用于支持rebar3脚本
+</code></pre>
+<h4 id="2-加入deps依赖">2. 加入deps依赖</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="o">{</span>deps, <span class="o">[</span>
+        <span class="o">{</span>cowboy, <span class="s2">&#34;1.0.1&#34;</span><span class="o">}</span>, % package
+        <span class="o">{</span>cowboy, <span class="o">{</span>git, <span class="s2">&#34;git://github.com/ninenines/cowboy.git&#34;</span>, <span class="o">{</span>tag, <span class="s2">&#34;1.0.1&#34;</span><span class="o">}}}</span> % alternatively, <span class="nb">source</span>
+        <span class="o">]</span>
+<span class="o">}</span>.
+</code></pre></div><p>    上面两种方式都可以获取依赖，对于第二种，使用过rebar的同学应该很熟悉，变化并不大</p>
+<p>    对于第一种，是用hex管理的erlang库完成的归类，例如上面的cowboy，最后就是通过https://repo.hex.pm/tarballs/cowboy-1.0.1.tar 这种地址从已经归类的服务端进行下载后管理的，至于hex的用法，比较复杂。如果想了解可以点这里。</p>
+<p>    总的来说，一般比较常用的库hex都会有归档，不需要提供git仓库地址，但是如果不配置就没法完成的话，就得按照第二种格式配置上vsn地址了。当然也可以通过更新hex的归档目录实现，不过吧，我只是猜可以，没实践过。。</p>
+<p>    rebar的老配置格式，例如{cowboy, &ldquo;.<em>&rdquo;, {git, &ldquo;git://github.com/ninenines/cowboy.git&rdquo;, {tag, &ldquo;1.0.1&rdquo;}}}这种在rebar3也是兼容的，但是第二个字段&quot;.</em>&quot;,会被忽略</p>
+<p>    添加完deps目录后，记得将新加的application加入到你的主app的.app.src文件中，这样就不用手动额外进行application调用了</p>
+<h4 id="3-编译">3. 编译</h4>
+<p>    和rebar一样，在项目的根目录下执行rebar compile就可以完成编译，不过和rebar不同的是，使用rebar我们得先执行rebar get-deps先主动获取依赖才行，rebar3不需要直接执行compile即可，而且可以保证deps目录是最新的，即使deps库有了变更。</p>
+<p>    默认的输入目录为_build目录，和rebar不同</p>
+<h4 id="4-测试">4. 测试</h4>
+<p>    测试用例默认是存放在test/目录下，eunit允许按照模块组织打包目录存放</p>
+<p>    如果测试用例需要额外的依赖，可以做单独配置，只有在运行测试用例的时候才getdeps指定依赖</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="o">{</span>profiles, <span class="o">[</span>
+    <span class="o">{</span>test, <span class="o">[</span>
+        <span class="o">{</span>deps, <span class="o">[</span>
+            <span class="o">{</span>meck, <span class="o">{</span>git, <span class="s2">&#34;git://github.com/eproxus/meck.git&#34;</span>, <span class="o">{</span>tag, <span class="s2">&#34;0.8.2&#34;</span><span class="o">}}}</span>
+        <span class="o">]}</span>
+    <span class="o">]}</span>
+<span class="o">]}</span>.
+</code></pre></div><p>    现在第一次调用rebar3 ct 会更新meck到_build/test/lib/.下，但是不会被加到rebar.lock文件中</p>
+<h4 id="5-发布">5. 发布</h4>
+<p>    rebar3使用relx进行构建。</p>
+<p>    可以使用rebar3 new release myrel 直接新建一个发布目标，该项目的rebar.config就会有一个推荐的relx配置如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="o">{</span>relx, <span class="o">[{</span>release, <span class="o">{</span>myrel, <span class="s2">&#34;0.0.1&#34;</span><span class="o">}</span>,
+            <span class="o">[</span>myrel<span class="o">]}</span>,
+
+        <span class="o">{</span>dev_mode, true<span class="o">}</span>,
+        <span class="o">{</span>include_erts, false<span class="o">}</span>,
+
+        <span class="o">{</span>extended_start_script, true<span class="o">}</span>
+        <span class="o">]</span>
+<span class="o">}</span>.
+
+<span class="o">{</span>profiles, <span class="o">[</span>
+    <span class="o">{</span>prod, <span class="o">[{</span>relx, <span class="o">[{</span>dev_mode, false<span class="o">}</span>,
+                    <span class="o">{</span>include_erts, true<span class="o">}]}</span>
+        <span class="o">]}</span>
+<span class="o">]}</span>.
+</code></pre></div><p>    你可以将上面的内容复制到你的rebar.config中，当然记得将myrel该成你自己的项目，就可以调用rebar3 release 进行发布</p>
+<p>    由于默认配置dev_mode为true，那么_build/rel/myrel/lib是符号连接_build/lib和apps/myrel。因此，在开发和重新编译应用程序时，您无需重新创建发行版，只需重新启动节点或重新加载模块即可。</p>
+<p>    使用命令rebar3 as prod tar 可以将发布的文件打包成tar包方便拷贝。</p>
+</article><section class="article labels"><a class="category" href=/categories/%E6%8A%80%E6%9C%AF/>技术</a><a class="category" href=/categories/erlang/>erlang</a><a class="tag" href=/tags/rebar/>rebar</a></section>
+</div>
+<div class="article bottom"><section class="article navigation"><p><a class="link" href="/posts/%E6%8A%80%E6%9C%AF/rebar/rebar3-erlang-otp%E6%9E%84%E5%BB%BA%E5%88%A9%E5%99%A8/"><span class="iconfont icon-article"></span>Rebar3 Erlang OTP构建利器</a></p><p><a class="link" href="/posts/%E6%8A%80%E6%9C%AF/erlang/supervisor%E5%90%AF%E5%8A%A8%E6%99%AE%E9%80%9A%E8%BF%9B%E7%A8%8B/"><span class="iconfont icon-article"></span>supervisor启动普通进程</a></p></section></div></section><section id="footer"><div class="footer-wrap">
+    <p class="copyright">Copyright ©2021-2099 Salman.</p></div>
+</section><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/&#43;DiW/UqRcLbRjq" crossorigin="anonymous"><script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l&#43;B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd&#43;qj&#43;o24G5ZU2zJz" crossorigin="anonymous"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+            onload="renderMathInElement(document.body);"></script><script src="/js/prism.min.a3995e4e31ad988992f22cde2df66a5efbb7cf211dbaba67dbf4c96efd0883c728a2f2ae94db1dbbe9b72893e18a9ed6.js" integrity="sha384-o5leTjGtmImS8izeLfZqXvu3zyEdurpn2/TJbv0Ig8coovKulNsdu&#43;m3KJPhip7W"></script><script>
+    var _hmt = _hmt || [];
+    (function() {
+        var hm = document.createElement("script");
+        hm.src = "https://hm.baidu.com/hm.js?2b59024f651488c102f34ca466295b1d";
+        var s = document.getElementsByTagName("script")[0]; 
+        s.parentNode.insertBefore(hm, s);
+    })();
+</script>    </body>
+
+</html>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh"><meta charset="utf-8"><meta name="generator" content="Hugo 0.88.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>Termux 安装 MariaDB&nbsp;&ndash;&nbsp;Salman</title><link rel="stylesheet" href="/css/core.min.5a2fa48694c926b82b28b322049d9f0cc663e4195aff3976c7ccb8dd3e8c391bc1b94c0827d7b55e0537ec9c0a6e5d8e.css" integrity="sha384-Wi&#43;khpTJJrgrKLMiBJ2fDMZj5Bla/zl2x8y43T6MORvBuUwIJ9e1XgU37JwKbl2O"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Termux 安装 MariaDB" /><body><section id="header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><img class="site logo" src="/images/head/128.128.png" alt /><span class="site name">Salman</span></a></span>
+        <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/">最新</a><a class="nav item" href="/about">我</a><a class="nav item" href="/categories/%e7%94%9f%e6%b4%bb/">生活</a><a class="nav item" href="/categories/%e6%8a%80%e6%9c%af">技术</a><a class="nav item" href="/categories/">分类</a><a class="nav item" href="/tags/">标签</a></nav></div></span></div><div class="site slogan"><span class="title">时间会告诉我们，简单的喜欢最长远，平凡的陪伴最心安，懂你的人最温暖。</span></div></section><section id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">Termux 安装 MariaDB</h1><p class="article date">2021年8月27日 10:49:19</p></section><article class="article markdown-body"><h4 id="安装-mariadb">安装 MariaDB</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">apt-get install mariadb
+<span class="m">111</span>
+这里有一点需要注意：如果安装失败可能是因为没有名为 my.cnf.d 的目录。然后，必须创建该目录，导航到如下的位置查看该目录是否存在：
+<span class="sb">```</span>shell
+<span class="nb">cd</span> /data/data/com.termux/files/usr/etc
+</code></pre></div><p>使用命令 ls 查看 etc 目录下的内容，如果目录下没有出现名为 my.cnf.d 的文件夹，则使用如下命令创建一个：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">mkdir my.cnf.d
+</code></pre></div><p>如果 my.cnf.d 目录已存在，则不执行任何操作，然后返回主页：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="nb">cd</span> ~
+</code></pre></div><h4 id="配置-mariadb">配置 MariaDB</h4>
+<p>一旦创建目录（如果目录不存在），我们将执行以下命令：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">mysql_install_db
+</code></pre></div><p>    mysql_install_db 初始化 MariaDB 数据目录，并在数据库中创建 系统表mysql（如果不存在）。MariaDB使用这些表来管理特权，角色和插件。</p>
+<h4 id="启动-mariadb-服务器">启动 MariaDB 服务器</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">mysqld
+</code></pre></div><p>或</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">mysqld_safe -u root <span class="p">&amp;</span>
+mysqld_safe 与 root 用户一起运行的；“＆”号将在后台运行。
+mysql与mysqld的区别：mysqld 是服务端程序；mysql 是命令行客户端程序。
+mysqld_safe 与 mysqld 区别：直接运行 mysqld 程序来启动 MySQL 服务的方法很少见。
+mysqld_safe 脚本会在启动 MySQL 服务器后继续监控其运行情况，并在其死机时重新启动它。
+mysql.server 脚本其实也是调用 mysqld_safe 脚本去启动 MySQL 服务器的。
+mysqld_safe 相当于多了一个守护进程，当 mysqld 挂了会自动把 mysqld 进程拉起来。
+</code></pre></div><h4 id="访问数据库">访问数据库</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">mysql -u root -p
+</code></pre></div><p>但是 MariaDB 数据库服务器，默认情况下，是没有密码的，只需要输入以下命令即可登录：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">mysql
+</code></pre></div><p>默认登录后即可为 root 帐号设置一个密码。</p>
+<p>修改密码：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="nb">set</span> password <span class="k">for</span> <span class="s1">&#39;root&#39;</span>@<span class="s1">&#39;localhost&#39;</span> <span class="o">=</span> password<span class="o">(</span><span class="s1">&#39;123456&#39;</span><span class="o">)</span><span class="p">;</span>
+</code></pre></div><h4 id="配置-mariadb-远程登录">配置 MariaDB 远程登录</h4>
+<p>创建一个可远程登录的用户：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">CREATE USER <span class="s1">&#39;username&#39;</span>@<span class="s1">&#39;%&#39;</span> IDENTIFIED BY <span class="s1">&#39;password&#39;</span><span class="p">;</span>
+</code></pre></div><p>%通配符表示创建外网可访问的用户。</p>
+<p>创建数据库</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">create database stock default character <span class="nb">set</span> utf8<span class="p">;</span>
+</code></pre></div><p>选择数据库名称</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">use stock<span class="p">;</span>
+</code></pre></div><p>用户授权：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">GRANT ALL privileges ON databasename.tablename TO <span class="s1">&#39;username&#39;</span>@<span class="s1">&#39;%&#39;</span><span class="p">;</span>
+</code></pre></div><p>如果要授予该用户对所有数据库和表的相应操作权限则可用 * 表示，如 <em>.</em></p>
+<p>刷新授权：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">flush privileges<span class="p">;</span>
+</code></pre></div><h4 id="停止-mariadb-服务器">停止 MariaDB 服务器</h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">pkill mysql
+</code></pre></div></article><section class="article labels"><a class="category" href=/categories/%E6%8A%80%E6%9C%AF/>技术</a><a class="category" href=/categories/linux/>linux</a><a class="tag" href=/tags/termux/>Termux</a><a class="tag" href=/tags/mysql/>mysql</a></section>
+</div>
+<div class="article bottom"><section class="article navigation"><p><a class="link" href="/posts/%E6%8A%80%E6%9C%AF/termux/termux-%E5%AE%89%E5%8D%93%E6%89%8B%E6%9C%BA%E5%AE%89%E8%A3%85linux/"><span class="iconfont icon-article"></span>termux 安卓手机安装linux</a></p><p><a class="link" href="/posts/%E6%8A%80%E6%9C%AF/erlang/url%E7%BC%96%E7%A0%81/"><span class="iconfont icon-article"></span>Url编码</a></p></section></div></section><section id="footer"><div class="footer-wrap">
+    <p class="copyright">Copyright ©2021-2099 Salman.</p></div>
+</section><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/&#43;DiW/UqRcLbRjq" crossorigin="anonymous"><script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l&#43;B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd&#43;qj&#43;o24G5ZU2zJz" crossorigin="anonymous"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+            onload="renderMathInElement(document.body);"></script><script src="/js/prism.min.a3995e4e31ad988992f22cde2df66a5efbb7cf211dbaba67dbf4c96efd0883c728a2f2ae94db1dbbe9b72893e18a9ed6.js" integrity="sha384-o5leTjGtmImS8izeLfZqXvu3zyEdurpn2/TJbv0Ig8coovKulNsdu&#43;m3KJPhip7W"></script><script>
+    var _hmt = _hmt || [];
+    (function() {
+        var hm = document.createElement("script");
+        hm.src = "https://hm.baidu.com/hm.js?2b59024f651488c102f34ca466295b1d";
+        var s = document.getElementsByTagName("script")[0]; 
+        s.parentNode.insertBefore(hm, s);
+    })();
+</script>    </body>
+
+</html>

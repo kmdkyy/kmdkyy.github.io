@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh"><meta charset="utf-8"><meta name="generator" content="Hugo 0.88.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>Rebar3 Erlang OTP构建利器&nbsp;&ndash;&nbsp;Salman</title><link rel="stylesheet" href="/css/core.min.5a2fa48694c926b82b28b322049d9f0cc663e4195aff3976c7ccb8dd3e8c391bc1b94c0827d7b55e0537ec9c0a6e5d8e.css" integrity="sha384-Wi&#43;khpTJJrgrKLMiBJ2fDMZj5Bla/zl2x8y43T6MORvBuUwIJ9e1XgU37JwKbl2O"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Rebar3 Erlang OTP构建利器" /><body><section id="header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><img class="site logo" src="/images/head/128.128.png" alt /><span class="site name">Salman</span></a></span>
+        <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/">最新</a><a class="nav item" href="/about">我</a><a class="nav item" href="/categories/%e7%94%9f%e6%b4%bb/">生活</a><a class="nav item" href="/categories/%e6%8a%80%e6%9c%af">技术</a><a class="nav item" href="/categories/">分类</a><a class="nav item" href="/tags/">标签</a></nav></div></span></div><div class="site slogan"><span class="title">时间会告诉我们，简单的喜欢最长远，平凡的陪伴最心安，懂你的人最温暖。</span></div></section><section id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">Rebar3 Erlang OTP构建利器</h1><p class="article date">2021年8月27日 10:49:19</p></section><article class="article markdown-body"><h3 id="一-依赖管理">一. 依赖管理</h3>
+<h4 id="1-包依赖和源码依赖">1. 包依赖和源码依赖</h4>
+<p>    Rebar3支持两种依赖：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-erlang" data-lang="erlang"><span class="p">{</span><span class="n">deps</span><span class="p">,[</span>
+    <span class="c">%% 包依赖
+</span><span class="c"></span>    <span class="n">rebar</span><span class="p">,</span>
+    <span class="p">{</span><span class="n">rebar</span><span class="p">,</span><span class="s">&#34;1.0.0&#34;</span><span class="p">},</span>
+    <span class="p">{</span><span class="n">rebar</span><span class="p">,</span> <span class="p">{</span><span class="n">pkg</span><span class="p">,</span> <span class="n">rebar_fork</span><span class="p">}},</span> <span class="c">% rebar app under a different pkg name
+</span><span class="c"></span>    <span class="p">{</span><span class="n">rebar</span><span class="p">,</span> <span class="s">&#34;1.0.0&#34;</span><span class="p">,</span> <span class="p">{</span><span class="n">pkg</span><span class="p">,</span> <span class="n">rebar_fork</span><span class="p">}},</span>
+    <span class="c">%% 源码依赖
+</span><span class="c"></span>    <span class="p">{</span><span class="n">rebar</span><span class="p">,</span> <span class="p">{</span><span class="n">git</span><span class="p">,</span> <span class="s">&#34;git://github.com/erlang/rebar3.git&#34;</span><span class="p">}},</span>
+    <span class="p">{</span><span class="n">rebar</span><span class="p">,</span> <span class="p">{</span><span class="n">git</span><span class="p">,</span> <span class="s">&#34;http://github.com/erlang/rebar3.git&#34;</span><span class="p">}},</span>
+    <span class="p">{</span><span class="n">rebar</span><span class="p">,</span> <span class="p">{</span><span class="n">git</span><span class="p">,</span> <span class="s">&#34;https://github.com/erlang/rebar3.git&#34;</span><span class="p">}},</span>
+    <span class="p">{</span><span class="n">rebar</span><span class="p">,</span> <span class="p">{</span><span class="n">git</span><span class="p">,</span> <span class="s">&#34;git@github.com:erlang/rebar3.git&#34;</span><span class="p">}},</span>
+    <span class="p">{</span><span class="n">rebar</span><span class="p">,</span> <span class="p">{</span><span class="n">hg</span><span class="p">,</span> <span class="s">&#34;https://othersite.com/erlang/rebar3&#34;</span><span class="p">}},</span>
+    <span class="p">{</span><span class="n">rebar</span><span class="p">,</span> <span class="p">{</span><span class="n">git</span><span class="p">,</span> <span class="s">&#34;git://github.com/erlang/rebar3.git&#34;</span><span class="p">,</span> <span class="p">{</span><span class="n">ref</span><span class="p">,</span> <span class="s">&#34;aef728&#34;</span><span class="p">}}},</span>
+    <span class="p">{</span><span class="n">rebar</span><span class="p">,</span> <span class="p">{</span><span class="n">git</span><span class="p">,</span> <span class="s">&#34;git://github.com/erlang/rebar3.git&#34;</span><span class="p">,</span> <span class="p">{</span><span class="n">branch</span><span class="p">,</span> <span class="s">&#34;master&#34;</span><span class="p">}}},</span>
+    <span class="p">{</span><span class="n">rebar</span><span class="p">,</span> <span class="p">{</span><span class="n">git</span><span class="p">,</span> <span class="s">&#34;git://github.com/erlang/rebar3.git&#34;</span><span class="p">,</span> <span class="p">{</span><span class="n">tag</span><span class="p">,</span> <span class="s">&#34;3.0.0&#34;</span><span class="p">}}}</span>
+<span class="p">]}</span>
+</code></pre></div><p>    Rebar3通过hex.pm来管理包依赖，在使用之前，需要通过rebar3 update从hex.pm更新包索引，并将包索引信息缓存到本地(~/.cache/rebar3/)。之后Rebar3便能正确解析包依赖，对应用程序使用上来说，两者没有明显区别。</p>
+<h4 id="2-升级依赖">2. 升级依赖</h4>
+<p>    在使用Rebar2的时候，如果项目依赖一个指向分支的dep，就会出现这种情况：</p>
+<p>    这个dep有远程分支更新时，rebar get-deps不会自动拉取更新，通常你只能进入dep目录执行git pull，或者删除该dep重新执行rebar get-deps。</p>
+<p>    项目成员各自的工作目录deps版本可能不一致，并且一些很久没更新的依赖可能在你部署新环境时(此时所有依赖都指向最新)出现问题。</p>
+<p>    所以在Rebar2的reabr.config中定义deps，都应该尽量使用tag, commitid来指定，而不是直接指向分支。那么Rebar3是如何解决这个问题的呢？</p>
+<p>    Rebar3解决此问题的核心在rebar.lock文件，该文件内容如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-erlang" data-lang="erlang"><span class="p">{</span><span class="s">&#34;1.1.0&#34;</span><span class="p">,</span>
+<span class="p">[{</span><span class="o">&lt;&lt;</span><span class="s">&#34;goldrush&#34;</span><span class="o">&gt;&gt;</span><span class="p">,{</span><span class="n">pkg</span><span class="p">,</span><span class="o">&lt;&lt;</span><span class="s">&#34;goldrush&#34;</span><span class="o">&gt;&gt;</span><span class="p">,</span><span class="o">&lt;&lt;</span><span class="s">&#34;0.1.8&#34;</span><span class="o">&gt;&gt;</span><span class="p">},</span><span class="mi">1</span><span class="p">},</span>
+<span class="p">{</span><span class="o">&lt;&lt;</span><span class="s">&#34;lager&#34;</span><span class="o">&gt;&gt;</span><span class="p">,{</span><span class="n">pkg</span><span class="p">,</span><span class="o">&lt;&lt;</span><span class="s">&#34;lager&#34;</span><span class="o">&gt;&gt;</span><span class="p">,</span><span class="o">&lt;&lt;</span><span class="s">&#34;3.2.1&#34;</span><span class="o">&gt;&gt;</span><span class="p">},</span><span class="mi">0</span><span class="p">}]}.</span>
+<span class="p">[</span>
+<span class="p">{</span><span class="n">pkg_hash</span><span class="p">,[</span>
+<span class="p">{</span><span class="o">&lt;&lt;</span><span class="s">&#34;goldrush&#34;</span><span class="o">&gt;&gt;</span><span class="p">,</span> <span class="o">&lt;&lt;</span><span class="s">&#34;2024BA375CEEA47E27EA70E14D2C483B2D8610101B4E852EF7F89163CDB6E649&#34;</span><span class="o">&gt;&gt;</span><span class="p">},</span>
+<span class="p">{</span><span class="o">&lt;&lt;</span><span class="s">&#34;lager&#34;</span><span class="o">&gt;&gt;</span><span class="p">,</span> <span class="o">&lt;&lt;</span><span class="s">&#34;EEF4E18B39E4195D37606D9088EA05BF1B745986CF8EC84F01D332456FE88D17&#34;</span><span class="o">&gt;&gt;</span><span class="p">}]}</span>
+<span class="p">].</span>
+</code></pre></div><p>    该文件是项目当前使用依赖库的一个版本快照。当一个依赖被获取和锁定，Rebar3将从依赖中提取版本信息并写入rebar.lock文件中，该文件应该加入GIt仓库，并且由专人维护，这样只要rebar.lock一致，各本地仓库的依赖库版本就是一致的。</p>
+<p>    依赖升级分为两种，一种是直接通过rebar upgrade [dep]进行源码更新或包更新(只能更新Top Level依赖)。另一种是rebar.config发生变动，比如去除了某个依赖，此时需要rebar unlock [dep]命令来清理rebar.lock文件。</p>
+<p>相关命令：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-erlang" data-lang="erlang"><span class="n">rebar3</span> <span class="n">update</span>  <span class="o">//</span> <span class="err">更新包索引</span>
+<span class="n">rebar3</span> <span class="n">pkgs</span> <span class="o">//</span> <span class="err">列出所有可用的包</span>
+<span class="n">rebar3</span> <span class="n">deps</span>  <span class="o">//</span> <span class="err">列出所有一级</span><span class="p">(</span><span class="nv">Top</span> <span class="nv">Level</span><span class="p">)</span><span class="err">依赖</span>
+<span class="n">rebar3</span> <span class="n">tree</span>  <span class="o">//</span> <span class="err">以树形结构查看依赖</span>
+<span class="n">rebar3</span> <span class="n">compile</span> <span class="o">//</span> <span class="err">获取并编译依赖</span>
+<span class="n">rebar3</span> <span class="n">upgrade</span> <span class="p">[</span><span class="n">dep</span><span class="p">]</span> <span class="o">//</span> <span class="err">升级依赖</span>
+<span class="n">rebar3</span> <span class="n">lock</span> <span class="p">[</span><span class="n">dep</span><span class="p">]</span> <span class="o">//</span> <span class="err">锁定依赖</span>
+<span class="n">rebar3</span> <span class="n">unlock</span> <span class="p">[</span><span class="n">dep</span><span class="p">]</span> <span class="o">//</span> <span class="err">解锁依赖</span>
+</code></pre></div><h3 id="二-构建">二. 构建</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-erlang" data-lang="erlang"><span class="n">rebar3</span> <span class="n">new</span> <span class="n">app</span> <span class="p">[</span><span class="n">appname</span><span class="p">]</span>
+<span class="n">rebar3</span> <span class="n">new</span> <span class="n">lib</span> <span class="p">[</span><span class="n">libname</span><span class="p">]</span>
+</code></pre></div><p>    Rebar3建议应用程序按照OTP规范目录进行组织：</p>
+<pre><code>├── LICENSE
+├── README.md
+├── apps
+│   └── myapp
+│       └── src
+│           ├── myapp.app.src
+│           ├── myapp_app.erl
+│           └── myapp_sup.erl
+├── config
+│   ├── sys.config
+│   └── vm.args
+├── lib
+│   └── mylib
+│       ├── LICENSE
+│       ├── README.md
+│       ├── rebar.config
+│       └── src
+│           ├── mylib.app.src
+│           └── mylib.erl
+└── rebar.config
+</code></pre>
+<p>    这样无需在rebar.config中指定sub_dirs，Rebar3会自动将lib和apps作为搜索路径。</p>
+<p>    Rebar3没有get-deps命令，通过rebar3 compile即可编译项目，并自动获取和编译不存在的依赖，Rebar3将所有编译文件和Release信息都置于_build目录下。默认apps，deps和lib下的应用都被编译到_build/default/lib中。要指定应用目录和输出目录等选项，请参考：Rebar3配置。</p>
+<h3 id="三-发布">三. 发布</h3>
+<h4 id="1发布环境">1.发布环境</h4>
+<p>    Rebar3放弃了reltool而使用relx作为发布工具。并且将relx.config内容集成到rebar.config当中，通过rebar new release [appname]可创建一个发布，rebar.config内容如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-erlang" data-lang="erlang"><span class="p">{</span><span class="n">erl_opts</span><span class="p">,</span> <span class="p">[</span><span class="n">debug_info</span><span class="p">]}.</span>
+<span class="p">{</span><span class="n">deps</span><span class="p">,</span> <span class="p">[]}.</span>
+
+<span class="c">%% 定义默认发布环境(default环境)
+</span><span class="c"></span><span class="p">{</span><span class="n">relx</span><span class="p">,</span> <span class="p">[{</span><span class="n">release</span><span class="p">,</span> <span class="p">{</span> <span class="n">myapp</span><span class="p">,</span> <span class="s">&#34;0.1.0&#34;</span> <span class="p">},</span>
+            <span class="p">[</span><span class="n">myapp</span><span class="p">,</span>
+            <span class="n">sasl</span><span class="p">]},</span>
+
+        <span class="p">{</span><span class="n">sys_config</span><span class="p">,</span> <span class="s">&#34;./config/sys.config&#34;</span><span class="p">},</span>
+        <span class="p">{</span><span class="n">vm_args</span><span class="p">,</span> <span class="s">&#34;./config/vm.args&#34;</span><span class="p">},</span>
+
+    <span class="c">%% 当dev_mode==true时 _build/default/rel/myapp/lib/目录下的库其实是_build/default/lib目录下对应lib的软链接，这样重新编译后，无需重新发布，重启或热加载代码即可
+</span><span class="c"></span>        <span class="p">{</span><span class="n">dev_mode</span><span class="p">,</span> <span class="n">true</span><span class="p">},</span>
+        <span class="c">%% 是否在发布目录中包含虚拟机 即为一个独立的运行环境
+</span><span class="c"></span>        <span class="p">{</span><span class="n">include_erts</span><span class="p">,</span> <span class="n">false</span><span class="p">},</span>
+
+        <span class="p">{</span><span class="n">extended_start_script</span><span class="p">,</span> <span class="n">true</span><span class="p">}]</span>
+<span class="p">}.</span>
+
+<span class="c">%% 定义其它发布环境
+</span><span class="c">%% 参数使用覆盖(override)机制，即这里面没有定义的参数，将使用默认发布环境(default)配置
+</span><span class="c"></span><span class="p">{</span><span class="n">profiles</span><span class="p">,</span> <span class="p">[{</span><span class="n">prod</span><span class="p">,</span> <span class="p">[{</span><span class="n">relx</span><span class="p">,</span> <span class="p">[{</span><span class="n">dev_mode</span><span class="p">,</span> <span class="n">false</span><span class="p">},</span>
+                            <span class="p">{</span><span class="n">include_erts</span><span class="p">,</span> <span class="n">true</span><span class="p">}]}]</span>
+            <span class="p">}]</span>
+<span class="p">}</span>
+</code></pre></div><p>    Rebar3中有发布环境(profiles)的概念，如开发环境(default)，生产环境(prod)，它们可以独立定义编译参数(erl_opts)，发布参数(dev_mode, include_erts)，甚至依赖应用(deps)。目前Rebar3支持四种环境定义：</p>
+<pre><code>default：默认环境，也就是rebar.config中最外部定义的环境
+
+prod：生产环境，通常在此环境下将使用库的完整发布包(而不是软链接)，有更严格的编译选项，并且可能还要包含Erlang运行时所需要的所有环境
+
+native：原生环境，强制使用HiPE编译，从而得到更快的编译速度
+
+test：测试环境，将加载一些额外的库(如meck)，打开调试信息，用于跑测试代码
+</code></pre>
+<p>    不同发布环境将发布在不同的目录下，如prod环境默认将生成在_build/prod/下，无论顶层应用采用何种发布环境，依赖将始终只能使用prod环境发布。并且只有顶层依赖的default环境，可以被保存到rebar.lock中。</p>
+<p>    rebar3 release将按照default环境发布应用，通过rebar3 as prod release可以将应用在生产环境发布。具体环境配置及命令参考Rebar3环境。</p>
+<h4 id="2-发布多个应用">2. 发布多个应用</h4>
+<p>    Rebar3支持在rebar.config中定义多个应用的发布，多个应用可以共享配置：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-erlang" data-lang="erlang"><span class="p">{</span><span class="n">relx</span><span class="p">,</span> <span class="p">[{</span><span class="n">release</span><span class="p">,</span> <span class="p">{</span><span class="n">myapp1</span><span class="p">,</span> <span class="s">&#34;0.0.1&#34;</span><span class="p">},</span>
+<span class="p">[</span><span class="n">myapp1</span><span class="p">]},</span>
+<span class="p">{</span><span class="n">release</span><span class="p">,</span> <span class="p">{</span><span class="n">myapp2</span><span class="p">,</span> <span class="s">&#34;0.1.0&#34;</span><span class="p">},</span>
+<span class="p">[</span><span class="n">myapp2</span><span class="p">]},</span>
+
+<span class="c">% 共用配置
+</span><span class="c"></span><span class="p">{</span><span class="n">sys_config</span><span class="p">,</span> <span class="s">&#34;config/sys.config&#34;</span><span class="p">},</span>
+<span class="p">{</span><span class="n">vm_args</span><span class="p">,</span> <span class="s">&#34;config/vm.args&#34;</span><span class="p">},</span>
+
+<span class="p">{</span><span class="n">dev_mode</span><span class="p">,</span> <span class="n">true</span><span class="p">},</span>
+<span class="p">{</span><span class="n">include_erts</span><span class="p">,</span> <span class="n">false</span><span class="p">},</span>
+<span class="p">{</span><span class="n">extended_start_script</span><span class="p">,</span> <span class="n">true</span><span class="p">}]}.</span>
+</code></pre></div><p>    也可以独立配置：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-erlang" data-lang="erlang"><span class="p">{</span><span class="n">relx</span><span class="p">,</span> <span class="p">[</span>
+    <span class="p">{</span><span class="n">release</span><span class="p">,</span> <span class="p">{</span><span class="n">myapp1</span><span class="p">,</span> <span class="s">&#34;0.0.1&#34;</span><span class="p">},</span>
+                <span class="p">[</span><span class="n">myapp1</span><span class="p">],</span>
+                <span class="c">% 注意配置顺序和格式 各应用的独立配置是一个PropList
+</span><span class="c"></span>                <span class="p">[{</span><span class="n">sys_config</span><span class="p">,</span> <span class="s">&#34;config/sys1.config&#34;</span><span class="p">},</span>
+        <span class="p">{</span><span class="n">vm_args</span><span class="p">,</span> <span class="s">&#34;config/vm1.args&#34;</span><span class="p">}]</span>
+    <span class="p">},</span>
+        <span class="p">{</span><span class="n">release</span><span class="p">,</span> <span class="p">{</span><span class="n">myapp2</span><span class="p">,</span> <span class="s">&#34;0.1.0&#34;</span><span class="p">},</span>
+                <span class="p">[</span><span class="n">myapp2</span><span class="p">],</span>
+                <span class="p">[{</span><span class="n">sys_config</span><span class="p">,</span> <span class="s">&#34;config/sys1.config&#34;</span><span class="p">},</span>
+        <span class="p">{</span><span class="n">vm_args</span><span class="p">,</span> <span class="s">&#34;config/vm1.args&#34;</span><span class="p">},</span>
+        <span class="p">{</span><span class="n">overlay</span><span class="p">}]</span>
+    <span class="p">},</span>    
+
+    <span class="p">{</span><span class="n">dev_mode</span><span class="p">,</span> <span class="n">true</span><span class="p">},</span>
+    <span class="p">{</span><span class="n">include_erts</span><span class="p">,</span> <span class="n">false</span><span class="p">},</span>
+
+    <span class="p">{</span><span class="n">extended_start_script</span><span class="p">,</span> <span class="n">true</span><span class="p">}]}.</span>
+</code></pre></div><h4 id="3-应用依赖">3. 应用依赖</h4>
+<p>    定义于rebar.config deps中的依赖被获取后放在_build/default/lib目录下，默认并不会打包到应用的发布目录_build/default/rel/myapp/lib中，你需要在relbar.config的relx中指定应用依赖：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-erlang" data-lang="erlang"><span class="p">{</span><span class="n">relx</span><span class="p">,</span> <span class="p">[{</span><span class="n">release</span><span class="p">,</span> <span class="p">{</span> <span class="n">myapp</span><span class="p">,</span> <span class="s">&#34;0.1.0&#34;</span> <span class="p">},</span>
+            <span class="p">[</span>
+            <span class="c">% 指定应用依赖 mylib会先于myapp被启动
+</span><span class="c"></span>            <span class="n">mylib</span><span class="p">,</span> 
+            <span class="n">myapp</span><span class="p">]</span>
+            <span class="p">},</span>
+
+        <span class="p">{</span><span class="n">sys_config</span><span class="p">,</span> <span class="s">&#34;./config/sys.config&#34;</span><span class="p">},</span>
+        <span class="p">{</span><span class="n">vm_args</span><span class="p">,</span> <span class="s">&#34;./config/vm.args&#34;</span><span class="p">},</span>
+
+        <span class="p">{</span><span class="n">dev_mode</span><span class="p">,</span> <span class="n">true</span><span class="p">},</span>
+        <span class="p">{</span><span class="n">include_erts</span><span class="p">,</span> <span class="n">false</span><span class="p">},</span>
+
+        <span class="p">{</span><span class="n">extended_start_script</span><span class="p">,</span> <span class="n">true</span><span class="p">}]</span>
+<span class="p">}.</span>
+</code></pre></div><p>    那么对于一些辅助lib呢，我们希望它被打包在应用发布目录中，但不希望它们被启动(它们可能根本不能启动)，一种方法是将mylib指定为{mylib, load}(参见Issue1, Issue2)，列表中的依赖项默认被relx解释为{mylib, permanent}，即以常驻的方式启动应用。</p>
+<h4 id="4-overlays">4. Overlays</h4>
+<p>    Overlay允许用户定义一些文件模板和部署准备工作，如拷贝文件，创建文件夹等：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-erlang" data-lang="erlang"><span class="p">{</span><span class="n">relx</span><span class="p">,</span> <span class="p">[</span>
+    <span class="p">{</span><span class="n">overlay_vars</span><span class="p">,</span> <span class="s">&#34;vars.config&#34;</span><span class="p">},</span>
+    <span class="p">{</span><span class="n">overlay</span><span class="p">,</span> <span class="p">[{</span><span class="n">mkdir</span><span class="p">,</span> <span class="s">&#34;log/sasl&#34;</span><span class="p">},</span>
+                <span class="p">{</span><span class="n">template</span><span class="p">,</span> <span class="s">&#34;priv/app.config&#34;</span><span class="p">,</span> <span class="s">&#34;etc/app.config&#34;</span><span class="p">}</span><span class="err">，</span>
+                <span class="c">% root_dir是relx提供的变量 代表项目根目录
+</span><span class="c"></span>                <span class="p">{</span><span class="n">copy</span><span class="p">,</span> <span class="s">&#34;{{root_dir}}/configures&#34;</span><span class="p">,</span> <span class="s">&#34;./&#34;</span><span class="p">}]}</span>
+<span class="p">]}.</span>
+</code></pre></div><p>    Overlay可以如sys_config和vm_config一样，放在各应用的独立发布配置中。</p>
+<p>    更多关于Rebar3发布流程，发布配置，以及库升级等，参考Rebar3发布。</p>
+<h3 id="四-总结">四. 总结</h3>
+<p>    Rebar3无疑是个好东西，更先进的依赖管理，多节点发布，发布环境的概念，都是Rebar2 + Reltool所不能实现的，当前我们项目就使用的Rebar2.x，用于部署一个多节点的集群，遇到的问题：</p>
+<pre><code>依赖管理：各本地版本不一致问题，Rebar3的lock为依赖的一致性提供了保证。
+
+多节点部署：Rebar2.x需要为每个节点创建release(create-node)，需要维护N份reltool.config和一份rebar.config。在Rebar3中只需一个rebar.config文件。并且可以灵活定义各节点配置文件(vm.args, sys.config)路径，更有利于项目结构管理和可读性。
+
+开发模式：在本地开发时，Rebar2.x的generate和upgrade太慢了，前者可用二进制发布自己写脚本替代(用erl_call和节点通信)，后者可用reloader实现热更，这样提高了部署速度，却要自己维护节点交互脚本。Rebar3的dev_mode完美解决了这个问题。
+
+环境管理：这一块的用处还有待挖掘和摸索。
+</code></pre>
+<p>    Rebar3目前主要的缺点，在于relx文档匮乏，提供了很多好东西，但能传达到用户让用户理解和用上的很少。翻遍了relx wiki，也没有找到应用独立配置环境(sys_config, vm_args等)的方法，最后是看了其配置解析模块rlx_config.erl才猜出来的格式= =。</p>
+<h3 id="五-参考">五. 参考：</h3>
+<p>Rebar3文档</p>
+<p>Rebar3文档中文翻译(部分)</p>
+<p>relx wiki</p>
+<p>OTP Release 结构</p>
+</article><section class="article labels"><a class="category" href=/categories/%E6%8A%80%E6%9C%AF/>技术</a><a class="category" href=/categories/erlang/>erlang</a><a class="tag" href=/tags/rebar/>rebar</a></section>
+</div>
+<div class="article bottom"><section class="article navigation"><p><a class="link" href="/posts/%E6%8A%80%E6%9C%AF/linux/putty-&#43;-xming-%E5%AE%9E%E7%8E%B0%E8%BF%9C%E7%A8%8B%E5%9B%BE%E5%BD%A2%E7%95%8C%E9%9D%A2/"><span class="iconfont icon-article"></span>PuTTY + Xming 实现远程图形界面</a></p><p><a class="link" href="/posts/%E6%8A%80%E6%9C%AF/rebar/rebar3%E4%BD%BF%E7%94%A8%E4%BB%8B%E7%BB%8D/"><span class="iconfont icon-article"></span>Rebar3使用介绍</a></p></section></div></section><section id="footer"><div class="footer-wrap">
+    <p class="copyright">Copyright ©2021-2099 Salman.</p></div>
+</section><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/&#43;DiW/UqRcLbRjq" crossorigin="anonymous"><script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l&#43;B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd&#43;qj&#43;o24G5ZU2zJz" crossorigin="anonymous"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+            onload="renderMathInElement(document.body);"></script><script src="/js/prism.min.a3995e4e31ad988992f22cde2df66a5efbb7cf211dbaba67dbf4c96efd0883c728a2f2ae94db1dbbe9b72893e18a9ed6.js" integrity="sha384-o5leTjGtmImS8izeLfZqXvu3zyEdurpn2/TJbv0Ig8coovKulNsdu&#43;m3KJPhip7W"></script><script>
+    var _hmt = _hmt || [];
+    (function() {
+        var hm = document.createElement("script");
+        hm.src = "https://hm.baidu.com/hm.js?2b59024f651488c102f34ca466295b1d";
+        var s = document.getElementsByTagName("script")[0]; 
+        s.parentNode.insertBefore(hm, s);
+    })();
+</script>    </body>
+
+</html>

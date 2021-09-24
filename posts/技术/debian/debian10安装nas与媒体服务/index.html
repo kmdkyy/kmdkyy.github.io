@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh"><meta charset="utf-8"><meta name="generator" content="Hugo 0.88.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>安装NAS与媒体服务&nbsp;&ndash;&nbsp;Salman</title><link rel="stylesheet" href="/css/core.min.5a2fa48694c926b82b28b322049d9f0cc663e4195aff3976c7ccb8dd3e8c391bc1b94c0827d7b55e0537ec9c0a6e5d8e.css" integrity="sha384-Wi&#43;khpTJJrgrKLMiBJ2fDMZj5Bla/zl2x8y43T6MORvBuUwIJ9e1XgU37JwKbl2O"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="安装NAS与媒体服务" /><body><section id="header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><img class="site logo" src="/images/head/128.128.png" alt /><span class="site name">Salman</span></a></span>
+        <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/">最新</a><a class="nav item" href="/about">我</a><a class="nav item" href="/categories/%e7%94%9f%e6%b4%bb/">生活</a><a class="nav item" href="/categories/%e6%8a%80%e6%9c%af">技术</a><a class="nav item" href="/categories/">分类</a><a class="nav item" href="/tags/">标签</a></nav></div></span></div><div class="site slogan"><span class="title">时间会告诉我们，简单的喜欢最长远，平凡的陪伴最心安，懂你的人最温暖。</span></div></section><section id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">安装NAS与媒体服务</h1><p class="article date">2021年8月27日 10:49:19</p></section><article class="article markdown-body"><h3 id="安装工具">安装工具：</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">apt-get install net-tools
+apt-get install samba
+apt-get install minidlna
+</code></pre></div><p><em>Net Tools：Debian默认是不支持诸如ifconfig、arp等一些常用的网络命令的，安装好这个工具就OK了。</em></p>
+<p><em>samba：实现SMB协议的文件共享服务，在Windows系统里访问NAS就是通过它来实现的。</em></p>
+<p><em>miniDLNA：Linux上实现DLNA协议的工具，可以实现向其他网络设备的音频、视频、图片的推送，嗯，比如耳熟能详的各种盒子。</em></p>
+<h3 id="设置固定ip">设置固定IP</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">vi /etc/network/interfaces
+</code></pre></div><p>内容如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="c1"># This file describes the network interfaces available on your system</span>
+<span class="c1"># and how to activate them. For more information, see interfaces(5).</span>
+<span class="nb">source</span> /etc/network/interfaces.d/*
+<span class="c1"># The loopback network interface</span>
+auto lo
+iface lo inet loopback
+<span class="c1"># The primary network interface</span>
+allow-hotplug ens33
+iface ens33 inet static
+        address 192.168.2.96/24
+        gateway 192.168.2.1
+        <span class="c1"># dns-* options are implemented by the resolvconf package, if installed</span>
+        dns-nameservers 192.168.2.1 202.96.128.86 202.96.134.166
+        dns-search debian
+</code></pre></div><h3 id="开启ssh">开启SSH</h3>
+<h3 id="分区硬盘开机自动挂载指定硬盘分区">分区硬盘，开机自动挂载指定硬盘分区</h3>
+<h3 id="添加linux组用户设置密码">添加linux组、用户、设置密码</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">groupadd nas
+useradd -g nas -s /usr/sbin/nologin -M nas
+passwd nas
+</code></pre></div><p><em>将用户nas添加到samba中，并设置登录密码</em></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">smbpasswd -a nas
+</code></pre></div><p><em>设置硬盘挂载点目录权限</em></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">chown -R nas:nas /mnt/nas
+chmod <span class="m">755</span> -R /mnt/nas
+</code></pre></div><h3 id="配置samba">配置samba</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">vi /etc/samba/smb.conf
+</code></pre></div><p>    最初的smb.conf文件开启了一系列的共享，这些都不是NAS共享需要的，找到“[printers]”、“[print$]”节，将其连同其下的子项一起注释掉，但“[homes]”不能注释掉。</p>
+<p><em>之后添加：</em></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="o">[</span>私人<span class="o">]</span>
+<span class="nv">comment</span> <span class="o">=</span> 私人
+<span class="nv">path</span> <span class="o">=</span> /mnt/nas
+<span class="nv">browseable</span> <span class="o">=</span> yes
+valid <span class="nv">users</span> <span class="o">=</span> nas
+write <span class="nv">list</span> <span class="o">=</span> nas
+create <span class="nv">mask</span> <span class="o">=</span> <span class="m">0600</span>
+directory <span class="nv">mask</span> <span class="o">=</span> <span class="m">0700</span>
+display <span class="nv">charset</span> <span class="o">=</span> UTF-8
+unix <span class="nv">charset</span> <span class="o">=</span> UTF-8
+dos <span class="nv">charset</span> <span class="o">=</span> cp936
+
+<span class="o">[</span>共享<span class="o">]</span>
+<span class="nv">comment</span> <span class="o">=</span> 共享
+<span class="nv">path</span> <span class="o">=</span> /mnt/nas/guest
+<span class="nv">browseable</span> <span class="o">=</span> yes
+<span class="nv">writable</span> <span class="o">=</span> yes
+<span class="nv">public</span> <span class="o">=</span> yes
+guest <span class="nv">ok</span> <span class="o">=</span> yes
+create <span class="nv">mask</span> <span class="o">=</span> <span class="m">0666</span>
+directory <span class="nv">mask</span> <span class="o">=</span> <span class="m">0777</span>
+display <span class="nv">charset</span> <span class="o">=</span> UTF-8
+unix <span class="nv">charset</span> <span class="o">=</span> UTF-8
+dos <span class="nv">charset</span> <span class="o">=</span> cp936
+vfs <span class="nv">objects</span> <span class="o">=</span> recycle
+recycle:repository <span class="o">=</span> /mnt/nas/recycle
+recycle:keeptree <span class="o">=</span> yes
+recycle:versions <span class="o">=</span> yes
+</code></pre></div><p><em>共享选项及说明</em></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="o">[</span>global<span class="o">]</span>
+config <span class="nv">file</span> <span class="o">=</span> /usr/local/samba/lib/smb.conf.%m
+<span class="c1">#说明：config file可以让你使用另一个配置文件来覆盖缺省的配置文件。如果文件 不存在，则该项无效。这个参数很有用，可以使得samba配置更灵活，可以让一台samba服务器模拟多台不同配置的服务器。比如，你想让PC1（主机名）这台电脑在访问Samba Server时使用它自己的配置文件，那么先在/etc/samba/host/下为PC1配置一个名为smb.conf.pc1的文件，然后在smb.conf中加入：config file = /etc/samba/host/smb.conf.%m。这样当PC1请求连接Samba Server时，smb.conf.%m就被替换成smb.conf.pc1。这样，对于PC1来说，它所使用的Samba服务就是由smb.conf.pc1定义的，而其他机器访问Samba Server则还是应用smb.conf。</span>
+<span class="nv">workgroup</span> <span class="o">=</span> WORKGROUP
+<span class="c1">#说明：设定 Samba Server 所要加入的工作组或者域。</span>
+server <span class="nv">string</span> <span class="o">=</span> Samba Server Version %v
+<span class="c1">#说明：设定 Samba Server 的注释，可以是任何字符串，也可以不填。宏%v表示显示Samba的版本号。</span>
+netbios <span class="nv">name</span> <span class="o">=</span> smbserver
+<span class="c1">#说明：设置Samba Server的NetBIOS名称。如果不填，则默认会使用该服务器的DNS名称的第一部分。netbios name和workgroup名字不要设置成一样了。</span>
+<span class="nv">interfaces</span> <span class="o">=</span> lo eth0 192.168.12.2/24 192.168.13.2/24
+<span class="c1">#说明：设置Samba Server监听哪些网卡，可以写网卡名，也可以写该网卡的IP地址。</span>
+hosts <span class="nv">allow</span> <span class="o">=</span> 127. 192.168.1. 192.168.10.1
+<span class="c1">#说明：表示允许连接到Samba Server的客户端，多个参数以空格隔开。可以用一个IP表示，也可以用一个网段表示。hosts deny 与hosts allow 刚好相反。</span>
+<span class="c1">#例如：hosts allow=172.17.2.EXCEPT172.17.2.50</span>
+<span class="c1">#表示容许来自172.17.2.*.*的主机连接，但排除172.17.2.50</span>
+hosts <span class="nv">allow</span><span class="o">=</span>172.17.2.0/255.255.0.0
+<span class="c1">#表示容许来自172.17.2.0/255.255.0.0子网中的所有主机连接</span>
+hosts <span class="nv">allow</span><span class="o">=</span>M1，M2
+<span class="c1">#表示容许来自M1和M2两台计算机连接</span>
+hosts <span class="nv">allow</span><span class="o">=</span>@xq
+<span class="c1">#表示容许来自XQ网域的所有计算机连接</span>
+max <span class="nv">connections</span> <span class="o">=</span> <span class="m">0</span>
+<span class="c1">#说明：max connections用来指定连接Samba Server的最大连接数目。如果超出连接数目，则新的连接请求将被拒绝。0表示不限制。</span>
+<span class="nv">deadtime</span> <span class="o">=</span> <span class="m">0</span>
+<span class="c1">#说明：deadtime用来设置断掉一个没有打开任何文件的连接的时间。单位是分钟，0代表Samba Server不自动切断任何连接。</span>
+<span class="nb">time</span> <span class="nv">server</span> <span class="o">=</span> yes/no
+<span class="c1">#说明：time server用来设置让nmdb成为windows客户端的时间服务器。</span>
+log <span class="nv">file</span> <span class="o">=</span> /var/log/samba/log.%m
+<span class="c1">#说明：设置Samba Server日志文件的存储位置以及日志文件名称。在文件名后加个宏%m（主机名），表示对每台访问Samba Server的机器都单独记录一个日志文件。如果pc1、pc2访问过Samba Server，就会在/var/log/samba目录下留下log.pc1和log.pc2两个日志文件。</span>
+max log <span class="nv">size</span> <span class="o">=</span> <span class="m">50</span>
+<span class="c1">#说明：设置Samba Server日志文件的最大容量，单位为kB，0代表不限制。</span>
+<span class="nv">security</span> <span class="o">=</span> user
+<span class="c1">#说明：设置用户访问Samba Server的验证方式，一共有四种验证方式。</span>
+<span class="c1">#1. share：用户访问Samba Server不需要提供用户名和口令, 安全性能较低。</span>
+<span class="c1">#2. user：Samba Server共享目录只能被授权的用户访问,由Samba Server负责检查账号和密码的正确性。账号和密码要在本Samba Server中建立。</span>
+<span class="c1">#3. server：依靠其他Windows NT/2000或Samba Server来验证用户的账号和密码,是一种代理验证。此种安全模式下,系统管理员可以把所有的Windows用户和口令集中到一个NT系统上,使用Windows NT进行Samba认证, 远程服务器可以自动认证全部用户和口令,如果认证失败,Samba将使用用户级安全模式作为替代的方式。</span>
+<span class="c1">#4. domain：域安全级别,使用主域控制器(PDC)来完成认证。</span>
+passdb <span class="nv">backend</span> <span class="o">=</span> tdbsam
+<span class="c1">#说明：passdb backend就是用户后台的意思。目前有三种后台：smbpasswd、tdbsam和ldapsam。sam应该是security account manager（安全账户管理）的简写。</span>
+<span class="c1">#1.smbpasswd：该方式是使用smb自己的工具smbpasswd来给系统用户（真实用户或者虚拟用户）设置一个Samba密码，客户端就用这个密码来访问Samba的资源。smbpasswd文件默认在/etc/samba目录下，不过有时候要手工建立该文件。</span>
+<span class="c1">#2.tdbsam：该方式则是使用一个数据库文件来建立用户数据库。数据库文件叫passdb.tdb，默认在/etc/samba目录下。passdb.tdb用户数据库可以使用smbpasswd –a来建立Samba用户，不过要建立的Samba用户必须先是系统用户。我们也可以使用pdbedit命令来建立Samba账户。pdbedit命令的参数很多，我们列出几个主要的。</span>
+<span class="c1">#pdbedit –a username：新建Samba账户。</span>
+<span class="c1">#pdbedit –x username：删除Samba账户。</span>
+<span class="c1">#pdbedit –L：列出Samba用户列表，读取passdb.tdb数据库文件。</span>
+<span class="c1">#pdbedit –Lv：列出Samba用户列表的详细信息。</span>
+<span class="c1">#pdbedit –c 逗[D]地 –u username：暂停该Samba用户的账号。</span>
+<span class="c1">#pdbedit –c 逗[]地 –u username：恢复该Samba用户的账号。</span>
+<span class="c1">#3.ldapsam：该方式则是基于LDAP的账户管理方式来验证用户。首先要建立LDAP服务，然后设置逗passdb backend = ldapsam:ldap://LDAP Server地</span>
+encrypt <span class="nv">passwords</span> <span class="o">=</span> yes/no
+<span class="c1">#说明：是否将认证密码加密。因为现在windows操作系统都是使用加密密码，所以一般要开启此项。不过配置文件默认已开启。</span>
+smb passwd <span class="nv">file</span> <span class="o">=</span> /etc/samba/smbpasswd
+<span class="c1">#说明：用来定义samba用户的密码文件。smbpasswd文件如果没有那就要手工新建。</span>
+username <span class="nv">map</span> <span class="o">=</span> /etc/samba/smbusers
+<span class="c1">#说明：用来定义用户名映射，比如可以将root换成administrator、admin等。不过要事先在smbusers文件中定义好。比如：root = administrator admin，这样就可以用administrator或admin这两个用户来代替root登陆Samba Server，更贴近windows用户的习惯。</span>
+guest <span class="nv">account</span> <span class="o">=</span> nobody
+<span class="c1">#说明：用来设置guest用户名。</span>
+socket <span class="nv">options</span> <span class="o">=</span> TCP_NODELAY <span class="nv">SO_RCVBUF</span><span class="o">=</span><span class="m">8192</span> <span class="nv">SO_SNDBUF</span><span class="o">=</span><span class="m">8192</span>
+<span class="c1">#说明：用来设置服务器和客户端之间会话的Socket选项，可以优化传输速度。</span>
+domain <span class="nv">master</span> <span class="o">=</span> yes/no
+<span class="c1">#说明：设置Samba服务器是否要成为网域主浏览器，网域主浏览器可以管理跨子网域的浏览服务。</span>
+<span class="nb">local</span> <span class="nv">master</span> <span class="o">=</span> yes/no
+<span class="c1">#说明：local master用来指定Samba Server是否试图成为本地网域主浏览器。如果设为no，则永远不会成为本地网域主浏览器。但是即使设置为yes，也不等于该Samba Server就能成为主浏览器，还需要参加选举。</span>
+preferred <span class="nv">master</span> <span class="o">=</span> yes/no
+<span class="c1">#说明：设置Samba Server一开机就强迫进行主浏览器选举，可以提高Samba Server成为本地网域主浏览器的机会。如果该参数指定为yes时，最好把domain master也指定为yes。使用该参数时要注意：如果在本Samba Server所在的子网有其他的机器（不论是windows NT还是其他Samba Server）也指定为首要主浏览器时，那么这些机器将会因为争夺主浏览器而在网络上大发广播，影响网络性能。</span>
+<span class="c1">#如果同一个区域内有多台Samba Server，将上面三个参数设定在一台即可。</span>
+os <span class="nv">level</span> <span class="o">=</span> <span class="m">200</span>
+<span class="c1">#说明：设置samba服务器的os level。该参数决定Samba Server是否有机会成为本地网域的主浏览器。os level从0到255，winNT的os level是32，win95/98的os level是1。Windows 2000的os level是64。如果设置为0，则意味着Samba Server将失去浏览选择。如果想让Samba Server成为PDC，那么将它的os level值设大些。</span>
+domain <span class="nv">logons</span> <span class="o">=</span> yes/no
+<span class="c1">#说明：设置Samba Server是否要做为本地域控制器。主域控制器和备份域控制器都需要开启此项。</span>
+logon . <span class="o">=</span> %u.bat
+<span class="c1">#说明：当使用者用windows客户端登陆，那么Samba将提供一个登陆档。如果设置成%u.bat，那么就要为每个用户提供一个登陆档。如果人比较多，那就比较麻烦。可以设置成一个具体的文件名，比如start.bat，那么用户登陆后都会去执行start.bat，而不用为每个用户设定一个登陆档了。这个文件要放置在[netlogon]的path设置的目录路径下。</span>
+wins <span class="nv">support</span> <span class="o">=</span> yes/no
+<span class="c1">#说明：设置samba服务器是否提供wins服务。</span>
+wins <span class="nv">server</span> <span class="o">=</span> wins服务器IP地址
+<span class="c1">#说明：设置Samba Server是否使用别的wins服务器提供wins服务。</span>
+wins <span class="nv">proxy</span> <span class="o">=</span> yes/no
+<span class="c1">#说明：设置Samba Server是否开启wins代理服务。</span>
+dns <span class="nv">proxy</span> <span class="o">=</span> yes/no
+<span class="c1">#说明：设置Samba Server是否开启dns代理服务。</span>
+load <span class="nv">printers</span> <span class="o">=</span> yes/no
+<span class="c1">#说明：设置是否在启动Samba时就共享打印机。</span>
+printcap <span class="nv">name</span> <span class="o">=</span> cups
+<span class="c1">#说明：设置共享打印机的配置文件。</span>
+<span class="nv">printing</span> <span class="o">=</span> cups
+<span class="c1">#说明：设置Samba共享打印机的类型。现在支持的打印系统有：bsd, sysv, plp, lprng, aix, hpux, qnx</span>
+
+<span class="c1">#共享参数：</span>
+<span class="c1">#================== Share Definitions ==================</span>
+<span class="o">[</span>共享名<span class="o">]</span>
+<span class="nv">comment</span> <span class="o">=</span> 任意字符串
+<span class="c1">#说明：comment是对该共享的描述，可以是任意字符串。</span>
+<span class="nv">path</span> <span class="o">=</span> 共享目录路径
+<span class="c1">#说明：path用来指定共享目录的路径。可以用%u、%m这样的宏来代替路径里的unix用户和客户机的Netbios名，用宏表示主要用于[homes]共享域。例如：如果我们不打算用home段做为客户的共享，而是在/home/share/下为每个Linux用户以他的用户名建个目录，作为他的共享目录，这样path就可以写成：path = /home/share/%u; 。用户在连接到这共享时具体的路径会被他的用户名代替，要注意这个用户名路径一定要存在，否则，客户机在访问时会找不到网络路径。同样，如果我们不是以用户来划分目录，而是以客户机来划分目录，为网络上每台可以访问samba的机器都各自建个以它的netbios名的路径，作为不同机器的共享资源，就可以这样写：path = /home/share/%m 。</span>
+<span class="nv">browseable</span> <span class="o">=</span> yes/no
+<span class="c1">#说明：browseable用来指定该共享是否可以浏览。</span>
+<span class="nv">writable</span> <span class="o">=</span> yes/no
+<span class="c1">#说明：writable用来指定该共享路径是否可写。</span>
+<span class="nv">available</span> <span class="o">=</span> yes/no
+<span class="c1">#说明：available用来指定该共享资源是否可用。</span>
+admin <span class="nv">users</span> <span class="o">=</span> 该共享的管理者
+<span class="c1">#说明：admin users用来指定该共享的管理员（对该共享具有完全控制权限）。在samba 3.0中，如果用户验证方式设置成逗security=share地时，此项无效。</span>
+<span class="c1">#例如：admin users =bobyuan，jane（多个用户中间用逗号隔开）。</span>
+valid <span class="nv">users</span> <span class="o">=</span> 允许访问该共享的用户
+<span class="c1">#说明：valid users用来指定允许访问该共享资源的用户。</span>
+<span class="c1">#例如：valid users = bobyuan，@bob，@tech（多个用户或者组中间用逗号隔开，如果要加入一个组就用逗@+组名地表示。）</span>
+invalid <span class="nv">users</span> <span class="o">=</span> 禁止访问该共享的用户
+<span class="c1">#说明：invalid users用来指定不允许访问该共享资源的用户。</span>
+<span class="c1">#例如：invalid users = root，@bob（多个用户或者组中间用逗号隔开。）</span>
+write <span class="nv">list</span> <span class="o">=</span> 允许写入该共享的用户
+<span class="c1">#说明：write list用来指定可以在该共享下写入文件的用户。</span>
+<span class="c1">#例如：write list = bobyuan，@bob</span>
+<span class="nv">public</span> <span class="o">=</span> yes/no
+<span class="c1">#说明：public用来指定该共享是否允许guest账户访问。</span>
+guest <span class="nv">ok</span> <span class="o">=</span> yes/no
+<span class="c1">#说明：意义同逗public地。</span>
+create <span class="nv">mask</span> <span class="o">=</span> <span class="m">0700</span>
+<span class="c1">#指定用户通过Samba在该共享目录中创建文件的默认权限。</span>
+directory <span class="nv">mask</span> <span class="o">=</span> <span class="m">0700</span>
+<span class="c1">#指定用户通过Samba在该共享目录中创建目录的默认权限。</span>
+vfs <span class="nv">objects</span> <span class="o">=</span> recycle
+<span class="c1">#客户端执行删除时，不是将文件删除，而是移动到一个临时目录中</span>
+<span class="c1">#vfs说明：</span>
+<span class="c1">#http://manpages.ubuntu.com/manpages/trusty/man8/vfs_recycle.8.html</span>
+</code></pre></div><p><em>几个特殊共享：</em></p>
+<pre tabindex="0"><code class="language-sehll" data-lang="sehll">[homes]
+comment = Home Directories
+browseable = no
+writable = yes
+valid users = %S
+; valid users = MYDOMAIN\%S
+
+[printers]
+comment = All Printers
+path = /var/spool/samba
+browseable = no
+guest ok = no
+writable = no
+printable = yes
+
+[netlogon]
+comment = Network Logon Service
+path = /var/lib/samba/netlogon
+guest ok = yes
+writable = no
+share modes = no
+
+[Profiles]
+path = /var/lib/samba/profiles
+browseable = no
+guest ok = yes
+</code></pre><h3 id="重启samba">重启samba</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">systemctl restart smbd
+</code></pre></div><h3 id="设置开机服务">设置开机服务</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">systemctl <span class="nb">enable</span> nmbd.service
+</code></pre></div><p>    现在可以通过网络共享访问到samba文件服务器了。</p>
+<h3 id="dlna服务配置">DLNA服务配置</h3>
+<p><a href="https://ramble.3vshej.cn/minidlna-1-2-1-cn-config/"target="_blank" rel="noopener noreferrer">https://ramble.3vshej.cn/minidlna-1-2-1-cn-config/</a>
+</p>
+<p>    针对Debian系统的DLNA服务，常用的是miniDLNA，前面已经将它安装好了。miniDLNA服务在访问文件时用的是“minidlna”这个用户的身份，他属于“minidlna”这个用户组，创建相应的目录，并赋予相应的权限。</p>
+<p><em>接下来用vim打开/etc/minidlna.conf，进行如下几项的配置：</em></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">friendly_name
+<span class="c1">#设置DLNA服务的网络名称，将来这个名称会出现在客户设备的DLNA服务列表中。这里设置为“NAS DLNA”。</span>
+
+<span class="c1">#在minidlna.conf文件里找到</span>
+<span class="c1">#   + &#34;A&#34; for audio  (eg. media_dir=A,/home/jmaggard/Music)</span>
+<span class="c1">#   + &#34;V&#34; for video  (eg. media_dir=V,/home/jmaggard/Videos)</span>
+<span class="c1">#   + &#34;P&#34; for images (eg. media_dir=P,/home/jmaggard/Pictures)</span>
+<span class="c1">#的部分。这是设置存放多媒体文件的文件夹（严格地说是设置想要MiniDLNA扫描的文件夹）的地方。“A”是音乐文件。“V”是视频文件。“P&#34;是图片文件。</span>
+<span class="c1">#比如我的设置是：</span>
+<span class="nv">media_dir</span><span class="o">=</span>A,/home/mike/Public/Playlists （我存放playlist的地方）
+<span class="nv">media_dir</span><span class="o">=</span>A,/home/mike/Public/Music （我存放音乐文件的地方）
+<span class="nv">media_dir</span><span class="o">=</span>V,/home/mike/Public/Video （我存放视频文件的地方）
+<span class="nv">media_dir</span><span class="o">=</span>P,/home/mike/Public/Pictures （我存放图片的地方）
+
+<span class="c1">#然后找到</span>
+<span class="c1">#db_dir=/var/cache/minidlna</span>
+<span class="c1">#的部分。在这里设置想存放数据库文件的地方。比如我是这样设置的：</span>
+<span class="nv">db_dir</span><span class="o">=</span>/home/mike/minidlna/cache
+<span class="c1">#MiniDLNA将在/home/mike/minidlna/cache的里面创建数据库文件</span>
+
+<span class="c1">#最后找到</span>
+<span class="c1">#log_dir=/var/log</span>
+<span class="c1">#在这里设置想存放log文件的地方。比如我是这样设置的：</span>
+<span class="nv">log_dir</span><span class="o">=</span>/home/mike/minidlna
+<span class="c1">#MiniDLNA将在/home/mike/minidlna的里面创建log文件。</span>
+</code></pre></div><p><em>保存退出后需要强制重载下miniDLNA服务，这样它才能搜到新追加的媒体文件：</em></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">systemctl force-reload minidlna
+</code></pre></div><p>    为了确认是不是真的已经更新了媒体资源，可以在网络中的任一浏览器上访问地址“NAS IP:8200”，成功的话页面中会列出媒体库中的媒体数量。</p>
+<p><em>MiniDLNA 1.2.1 中文配置选项：</em></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="c1"># HTTP 流量端口 (描述，SOAP，媒体传输)</span>
+<span class="nv">port</span><span class="o">=</span><span class="m">8200</span>
+ 
+<span class="c1"># 服务的网络接口，逗号分隔</span>
+<span class="c1">#network_interface=eth0</span>
+ 
+<span class="c1"># 指定以哪个用户运行（用户名或UID）</span>
+<span class="c1">#user=jmaggard</span>
+ 
+<span class="c1"># 设置要扫描的目录</span>
+<span class="c1"># * 如果你有多个目录，你可以添加多行 media_dir=</span>
+<span class="c1"># * 如果你要限制 media_dir 目录特定文件类型，</span>
+
+<span class="c1"># 可以在目前名前添加类型标识：</span>
+<span class="c1">#   + &#34;A&#34; 用于音频  (如 media_dir=A,/home/jmaggard/Music)</span>
+<span class="c1">#   + &#34;V&#34; 用于视频  (如 media_dir=V,/home/jmaggard/Videos)</span>
+<span class="c1">#   + &#34;P&#34; 用于图像  (如 media_dir=P,/home/jmaggard/Pictures)</span>
+<span class="c1">#   + &#34;PV&#34; 用于图片和视频 (如 media_dir=PV,/home/jmaggard/digital_camera)</span>
+<span class="nv">media_dir</span><span class="o">=</span>/opt
+ 
+<span class="c1"># 将媒体目录内容合并到根目录</span>
+<span class="c1"># 注意：默认为 no</span>
+<span class="c1">#merge_media_dirs=no</span>
+ 
+<span class="c1"># 自定义名称</span>
+<span class="c1">#friendly_name=My DLNA Server</span>
+ 
+<span class="c1"># 设置 MiniDLNA 数据和专辑封面缓存目录</span>
+<span class="c1">#db_dir=/var/cache/minidlna</span>
+ 
+<span class="c1"># 设置 MiniDLNA 日志目录</span>
+<span class="c1">#log_dir=/var/log</span>
+ 
+<span class="c1"># 设置日志记录级别</span>
+<span class="c1"># 级别有： off, fatal, error, warn, info, or debug</span>
+<span class="c1"># 分别是：关闭，致命，错误，警告，信息，或 调试</span>
+<span class="c1">#log_level=general,artwork,database,inotify,scanner,metadata,http,ssdp,tivo=warn</span>
+ 
+<span class="c1"># 搜索专辑封面要检查的文件名列表</span>
+<span class="c1"># 注意：文件名应该以/分隔</span>
+<span class="nv">album_art_names</span><span class="o">=</span>Cover.jpg/cover.jpg/AlbumArtSmall.jpg/albumartsmall.jpg/AlbumArt.jpg/albumart.jpg/Album.jpg/album.jpg/Folder.jpg/folder.jpg/Thumb.jpg/thumb.jpg
+ 
+<span class="c1"># 监视文件变动</span>
+<span class="c1"># 注意：默认值是 yes</span>
+<span class="nv">inotify</span><span class="o">=</span>yes
+ 
+<span class="c1"># 是否支持将 .jpg 和 .mp3文件传输到支持 HMO的 TiVo上。</span>
+<span class="nv">enable_tivo</span><span class="o">=</span>yes
+ 
+<span class="c1"># 设置 beacon 以传统广播方式发现</span>
+<span class="c1"># 默认 bonjour，如果 avahi 可用</span>
+<span class="nv">tivo_discovery</span><span class="o">=</span>bonjour
+ 
+<span class="c1"># 使用严格的 DLNA 标准</span>
+<span class="c1"># * 这将允许服务端缩小非常大的 JPEG图像</span>
+<span class="c1">#   这可能影响索尼 Sony DLNA 产品性能</span>
+<span class="nv">strict_dlna</span><span class="o">=</span>no
+ 
+<span class="c1"># 默认演示文稿地址 （默认在 80端口上）</span>
+<span class="c1">#presentation_url=http://www.mylan/index.php</span>
+ 
+<span class="c1"># 通知间隔</span>
+<span class="c1"># 默认 895 秒</span>
+<span class="nv">notify_interval</span><span class="o">=</span><span class="m">900</span>
+ 
+<span class="c1"># 在XML描述中向客户端报告序列号和型号</span>
+<span class="nv">serial</span><span class="o">=</span><span class="m">12345678</span>
+<span class="nv">model_number</span><span class="o">=</span><span class="m">1</span>
+ 
+<span class="c1"># MiniSSDPd 套接字路径</span>
+<span class="c1">#minissdpdsocket=/var/run/minissdpd.sock</span>
+ 
+<span class="c1"># 使用不同的目录做为根容器</span>
+<span class="c1"># 值有：</span>
+<span class="c1">#   + &#34;.&#34; - 标准容器（默认值）</span>
+<span class="c1">#   + &#34;B&#34; - &#34;浏览目录&#34;</span>
+<span class="c1">#   + &#34;M&#34; - &#34;音乐&#34;</span>
+<span class="c1">#   + &#34;V&#34; - &#34;视频&#34;</span>
+<span class="c1">#   + &#34;P&#34; - &#34;图片&#34;</span>
+<span class="c1">#   + 或者，你可以指定根容器的 ObjectID（如，1$F 是 Music/Playlists）</span>
+<span class="c1"># 如果你指定为 &#34;B&#34; 并且客户端设备是音频，则，&#34;Music/Folders&#34; 将 将做为根</span>
+<span class="c1">#root_container=.</span>
+ 
+<span class="c1"># 无论客户端传递的 SortCriteria 如何，始终强制 SortCriteria 为此值</span>
+<span class="c1">#force_sort_criteria=+upnp:class,+upnp:originalTrackNumber,+dc:title</span>
+ 
+<span class="c1"># 最大同时连接数</span>
+<span class="c1"># 注意：许多客户端在流式传输时会打开多个连接</span>
+<span class="c1">#max_connections=50</span>
+ 
+<span class="c1"># 允许访问媒体目录外的文件</span>
+<span class="c1"># 如果媒体目录中包含符号链接，设置为 no 将不允许访问媒体目录以外的文件。</span>
+<span class="c1">#wide_links=no</span>
+</code></pre></div><p><em>minidlnad命令行说明:</em></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="o">[</span>root@host www<span class="o">]</span><span class="c1"># minidlnad -h</span>
+用法:
+        minidlnad <span class="o">[</span>-d<span class="o">]</span> <span class="o">[</span>-v<span class="o">]</span> <span class="o">[</span>-f config_file<span class="o">]</span> <span class="o">[</span>-p port<span class="o">]</span>
+                <span class="o">[</span>-i network_interface<span class="o">]</span> <span class="o">[</span>-u uid_to_run_as<span class="o">]</span>
+                <span class="o">[</span>-t notify_interval<span class="o">]</span> <span class="o">[</span>-P pid_filename<span class="o">]</span>
+                <span class="o">[</span>-s serial<span class="o">]</span> <span class="o">[</span>-m model_number<span class="o">]</span>
+                <span class="o">[</span>-w url<span class="o">]</span> <span class="o">[</span>-r<span class="o">]</span> <span class="o">[</span>-R<span class="o">]</span> <span class="o">[</span>-L<span class="o">]</span> <span class="o">[</span>-S<span class="o">]</span> <span class="o">[</span>-V<span class="o">]</span> <span class="o">[</span>-h<span class="o">]</span>
+ 
+注:
+        通知以秒为单位，默认为 <span class="m">895</span> 秒。
+        默认 pid 文件在 /var/run/minidlna/minidlna.pid。
+        使用 -d 时，minidlna 将在调试模式下运行（而不是后台运行）。
+        -w 设置展示 URL，默认在 http 的 <span class="m">80</span> 端口
+        -v 启用详细输出
+        -h 显示帮助并退出
+        -r 强制重新扫描
+        -R 强制重建
+        -L 不创建播放列表
+        -S 更改 systemd 行为
+        -V 打印版本号
+</code></pre></div><h3 id="dlna音频应用">DLNA音频应用</h3>
+<p>    开通DLNA服务后，只要连接到网络中的音频播放设备支持DLNA协议，就可以播放DLNA服务器中的共享资源。将播放设备连接到网络中的可以是网线，也可以是无线Wifi，也就是说轻量级的桌面播放设备可以零连线播放，比如小米AI音箱，不过这些产品受制于体积与成本，都采用的是D类数字功放芯片，声音还原虽然精准，但是听感生硬，缺乏音乐味，听音时间稍长容易有“累”的感觉；此外功率也不够大，推不动低音单元6寸以上的落地式音箱。所以对于真正的音乐发烧友来说，更倾向于选择一台支持Wifi DLNA的功放，然后另配一套落地式音箱，比如雅马哈R-N402，当然还有未涵盖的方面，比如颇受发烧友青睐的“Wifi模块 DAC解码器 电子管功放”的组合式方案。</p>
+<p>    在播放的控制方面，用传统的遥控器上一曲下一曲地按来按去的操作已经过时了，这个时候该轮到安卓触屏手机上场大展拳脚了。就像在KTV K歌时在触屏上选曲及播放控制时的爽快体验一样，只要在安卓手机上装一个App，就可以用手机完成选曲、播放控制等一系列操作了，如果嫌手机的屏幕小，可以选用触屏平板电脑来控制。</p>
+<p>    安卓手机上的DLNA控制软件首推BubbleUPnP这款App，功能强大又不失专业，同时还可作为播放器用手机直接播放DLNA服务器上的音视频和图片资源，可谓是全能型选手。</p>
+<p>    安装好启动后，向右划屏，在“RENDERER”中选择DLNA播放设备（之前需要先将其连网），接着在“LIBRARY”中选择DLNA服务，即图中的“NAS DLNA”，这个字串就是之前在DLNA服务配置时friendly_name项后面输入的值。然后点击“Media”展开媒体列表，第一项“Browse Folders”下包含了所有的DLNA共享目录，下面的三项分别按音频、图片、视频将DLNA共享目录归类，点击“Music”，然后左划屏，切换到“LIBRARY”页。</p>
+<p>    LIBRARY页里列出了所有共享的音频资源，长按选中待播放的曲目，点击屏幕右上方的“ ”将其加入播放列表，然后其会显示在“PLAYLIST”页中，切换到该页后点击该项就可开始播放了。</p>
+<p>    在“NOW PLAYING”页中，除了常用的播放控制项外，快速上下滑动屏幕可以调节音量（需要在设置中使能此功能），单击屏幕可以显示曲目标签信息。</p>
+<p>    DLNA只是一种网络协议，其数据传输依托的载体是有线或Wifi网络，所以只要网速足够，理论上可以实时传送任何高音质的音频。以SONY推出的Hi-Res音频标准为例，典型的音源是24bit/96kHz的，换算出的码率为4.6Mbps，千兆的网络应付它是绰绰有余的。</p>
+</article><section class="article labels"><a class="category" href=/categories/%E6%8A%80%E6%9C%AF/>技术</a><a class="category" href=/categories/linux/>Linux</a><a class="tag" href=/tags/debian/>debian</a><a class="tag" href=/tags/nas/>nas</a><a class="tag" href=/tags/dlna/>dlna</a></section>
+</div>
+<div class="article bottom"><section class="article navigation"><p><a class="link" href="/posts/%E6%8A%80%E6%9C%AF/debian/debian-10%E5%8E%BB%E6%8E%89%E5%90%AF%E5%8A%A8%E6%A3%80%E6%B5%8B%E4%BF%A1%E6%81%AF/"><span class="iconfont icon-article"></span>去掉启动检测信息</a></p><p><a class="link" href="/posts/%E6%8A%80%E6%9C%AF/postgresql/debian-10.x%E4%B8%AD%E5%AE%89%E8%A3%85%E6%9C%80%E6%96%B0%E7%89%88postgresql/"><span class="iconfont icon-article"></span>安装最新版postgresql</a></p></section></div></section><section id="footer"><div class="footer-wrap">
+    <p class="copyright">Copyright ©2021-2099 Salman.</p></div>
+</section><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/&#43;DiW/UqRcLbRjq" crossorigin="anonymous"><script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l&#43;B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd&#43;qj&#43;o24G5ZU2zJz" crossorigin="anonymous"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+            onload="renderMathInElement(document.body);"></script><script src="/js/prism.min.a3995e4e31ad988992f22cde2df66a5efbb7cf211dbaba67dbf4c96efd0883c728a2f2ae94db1dbbe9b72893e18a9ed6.js" integrity="sha384-o5leTjGtmImS8izeLfZqXvu3zyEdurpn2/TJbv0Ig8coovKulNsdu&#43;m3KJPhip7W"></script><script>
+    var _hmt = _hmt || [];
+    (function() {
+        var hm = document.createElement("script");
+        hm.src = "https://hm.baidu.com/hm.js?2b59024f651488c102f34ca466295b1d";
+        var s = document.getElementsByTagName("script")[0]; 
+        s.parentNode.insertBefore(hm, s);
+    })();
+</script>    </body>
+
+</html>

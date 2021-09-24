@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh"><meta charset="utf-8"><meta name="generator" content="Hugo 0.88.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>开机后或登录后运行指定程序&nbsp;&ndash;&nbsp;Salman</title><link rel="stylesheet" href="/css/core.min.5a2fa48694c926b82b28b322049d9f0cc663e4195aff3976c7ccb8dd3e8c391bc1b94c0827d7b55e0537ec9c0a6e5d8e.css" integrity="sha384-Wi&#43;khpTJJrgrKLMiBJ2fDMZj5Bla/zl2x8y43T6MORvBuUwIJ9e1XgU37JwKbl2O"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="开机后或登录后运行指定程序" /><body><section id="header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><img class="site logo" src="/images/head/128.128.png" alt /><span class="site name">Salman</span></a></span>
+        <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/">最新</a><a class="nav item" href="/about">我</a><a class="nav item" href="/categories/%e7%94%9f%e6%b4%bb/">生活</a><a class="nav item" href="/categories/%e6%8a%80%e6%9c%af">技术</a><a class="nav item" href="/categories/">分类</a><a class="nav item" href="/tags/">标签</a></nav></div></span></div><div class="site slogan"><span class="title">时间会告诉我们，简单的喜欢最长远，平凡的陪伴最心安，懂你的人最温暖。</span></div></section><section id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">开机后或登录后运行指定程序</h1><p class="article date">2021年8月27日 10:49:19</p></section><article class="article markdown-body"><h4 id="登录后运行指定程序">登录后运行指定程序</h4>
+<ol>
+<li>在主目录下创建 .bash_login 文件，</li>
+<li>在其中输入 startx</li>
+<li>则登录后自动启动图形界面</li>
+</ol>
+<h4 id="debian10-开机自启动脚本">Debian10 开机自启动脚本</h4>
+<p>    以前，如果想要建立服务系统，就得要到 /etc/init.d/下面去建立相对应得bash脚本来完成。现在在systemd环境下面，想要设置相关的服务启动环境，那么该如何处理呢？ 系统服务的管理是通过systemd来完成的，而systemd的配置文件大部分放置于/lib/systemd/system目录中，但是官方文档指出，该目录的文件主要是原本软件所提供的设置，建议不要修改，而要修改的位置应该放置于/etc/systemd/system/目录中。</p>
+<p>举例如下：</p>
+<ol>
+<li>ls /lib/systemd/system 你可以看到有很多启动脚本，其中就有我们需要的 rc.local.service,使用 cat /lib/systemd/system/rc.local.service其内容如下：</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="c1">#  This file is part of systemd.</span>
+<span class="c1">#</span>
+<span class="c1">#  systemd is free software; you can redistribute it and/or modify it</span>
+<span class="c1">#  under the terms of the GNU Lesser General Public License as published by</span>
+<span class="c1">#  the Free Software Foundation; either version 2.1 of the License, or</span>
+<span class="c1">#  (at your option) any later version.</span>
+
+<span class="c1"># This unit gets pulled automatically into multi-user.target by</span>
+<span class="c1"># systemd-rc-local-generator if /etc/rc.local is executable.</span>
+<span class="o">[</span>Unit<span class="o">]</span>
+<span class="nv">Description</span><span class="o">=</span>/etc/rc.local Compatibility
+<span class="nv">ConditionFileIsExecutable</span><span class="o">=</span>/etc/rc.local
+<span class="nv">After</span><span class="o">=</span>network.target
+
+<span class="o">[</span>Service<span class="o">]</span>
+<span class="nv">Type</span><span class="o">=</span>forking
+<span class="nv">ExecStart</span><span class="o">=</span>/etc/rc.local start
+<span class="nv">TimeoutSec</span><span class="o">=</span><span class="m">0</span>
+<span class="nv">RemainAfterExit</span><span class="o">=</span>yes
+</code></pre></div><ol start="2">
+<li>自己创建 /etc/rc.local 这个文件的， 因为debian10默认是没有,使用 vim /etc/rc.local创建，里面的内容是我复制的，主要就是把第一句(#!/bin/sh -e) 和 最后一句(exit 0)写进去即可。</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="cp">#!/bin/sh -e
+</span><span class="cp"></span><span class="c1">#</span>
+<span class="c1"># rc.local</span>
+<span class="c1">#</span>
+<span class="c1"># This script is executed at the end of each multiuser runlevel.</span>
+<span class="c1"># Make sure that the script will &#34;exit 0&#34; on success or any other</span>
+<span class="c1"># value on error.</span>
+<span class="c1">#</span>
+<span class="c1"># In order to enable or disable this script just change the execution</span>
+<span class="c1"># bits.</span>
+<span class="c1">#</span>
+<span class="c1"># By default this script does nothing.</span>
+
+<span class="nb">exit</span> <span class="m">0</span>
+</code></pre></div><ol start="3">
+<li>让新建文件具有x权限，这个服务才能真的运行。</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">sudo chmod +x /etc/rc.local
+</code></pre></div><ol start="4">
+<li>前面我们说 systemd 默认读取 /etc/systemd/system 下的配置文件, 所以还需要在 /etc/systemd/system 目录下创建软链接（在debian 10.4中不需要创建软件链接也可以运行）</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">ln -s /lib/systemd/system/rc.local.service /etc/systemd/system/ 
+</code></pre></div><ol start="5">
+<li>把需要启动的脚本编辑到rc.local脚本中</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="cp">#!/bin/sh -e
+</span><span class="cp"></span><span class="c1">#</span>
+<span class="c1"># rc.local</span>
+<span class="c1">#</span>
+<span class="c1"># This script is executed at the end of each multiuser runlevel.</span>
+<span class="c1"># Make sure that the script will &#34;exit 0&#34; on success or any other</span>
+<span class="c1"># value on error.</span>
+<span class="c1">#</span>
+<span class="c1"># In order to enable or disable this script just change the execution</span>
+<span class="c1"># bits.</span>
+<span class="c1">#</span>
+<span class="c1"># By default this script does nothing.</span>
+// 启动脚本路径  
+// 注意: 一定要将命令添加在 <span class="nb">exit</span> 0之前
+<span class="nb">exit</span> <span class="m">0</span>
+</code></pre></div></article><section class="article labels"><a class="category" href=/categories/%E6%8A%80%E6%9C%AF/>技术</a><a class="category" href=/categories/linux/>Linux</a><a class="tag" href=/tags/debian/>debian</a><a class="tag" href=/tags/%E5%BC%80%E6%9C%BA%E5%90%AF%E5%8A%A8/>开机启动</a></section>
+</div>
+<div class="article bottom"><section class="article navigation"><p><a class="link" href="/posts/%E6%8A%80%E6%9C%AF/debian/debian-10%E5%BC%80%E5%90%AF%E5%A3%B0%E9%9F%B3%E6%92%AD%E6%94%BE%E5%99%A8/"><span class="iconfont icon-article"></span>开启声音，播放器</a></p><p><a class="link" href="/posts/%E6%8A%80%E6%9C%AF/debian/debian-10%E5%BC%80%E6%9C%BA%E5%90%AF%E7%94%A8ssh%E5%B9%B6%E5%85%81%E8%AE%B8root%E7%94%A8%E6%88%B7%E7%99%BB%E5%BD%95/"><span class="iconfont icon-article"></span>开机启用ssh，并允许root用户登录</a></p></section></div></section><section id="footer"><div class="footer-wrap">
+    <p class="copyright">Copyright ©2021-2099 Salman.</p></div>
+</section><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/&#43;DiW/UqRcLbRjq" crossorigin="anonymous"><script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l&#43;B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd&#43;qj&#43;o24G5ZU2zJz" crossorigin="anonymous"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+            onload="renderMathInElement(document.body);"></script><script src="/js/prism.min.a3995e4e31ad988992f22cde2df66a5efbb7cf211dbaba67dbf4c96efd0883c728a2f2ae94db1dbbe9b72893e18a9ed6.js" integrity="sha384-o5leTjGtmImS8izeLfZqXvu3zyEdurpn2/TJbv0Ig8coovKulNsdu&#43;m3KJPhip7W"></script><script>
+    var _hmt = _hmt || [];
+    (function() {
+        var hm = document.createElement("script");
+        hm.src = "https://hm.baidu.com/hm.js?2b59024f651488c102f34ca466295b1d";
+        var s = document.getElementsByTagName("script")[0]; 
+        s.parentNode.insertBefore(hm, s);
+    })();
+</script>    </body>
+
+</html>

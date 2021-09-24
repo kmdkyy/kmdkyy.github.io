@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh"><meta charset="utf-8"><meta name="generator" content="Hugo 0.88.1" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark"><title>安装最新版postgresql&nbsp;&ndash;&nbsp;Salman</title><link rel="stylesheet" href="/css/core.min.5a2fa48694c926b82b28b322049d9f0cc663e4195aff3976c7ccb8dd3e8c391bc1b94c0827d7b55e0537ec9c0a6e5d8e.css" integrity="sha384-Wi&#43;khpTJJrgrKLMiBJ2fDMZj5Bla/zl2x8y43T6MORvBuUwIJ9e1XgU37JwKbl2O"><meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="安装最新版postgresql" /><body><section id="header">
+    <div class="header wrap"><span class="header left-side"><a class="site home" href="/"><img class="site logo" src="/images/head/128.128.png" alt /><span class="site name">Salman</span></a></span>
+        <span class="header right-side"><div class="nav wrap"><nav class="nav"><a class="nav item" href="/">最新</a><a class="nav item" href="/about">我</a><a class="nav item" href="/categories/%e7%94%9f%e6%b4%bb/">生活</a><a class="nav item" href="/categories/%e6%8a%80%e6%9c%af">技术</a><a class="nav item" href="/categories/">分类</a><a class="nav item" href="/tags/">标签</a></nav></div></span></div><div class="site slogan"><span class="title">时间会告诉我们，简单的喜欢最长远，平凡的陪伴最心安，懂你的人最温暖。</span></div></section><section id="content"><div class="article-container"><section class="article header">
+    <h1 class="article title">安装最新版postgresql</h1><p class="article date">2021年8月27日 10:49:19</p></section><article class="article markdown-body"><h3 id="代码如下">代码如下：</h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">sh -c <span class="s1">&#39;echo &#34;deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main&#34; &gt; /etc/apt/sources.list.d/pgdg.list&#39;</span>
+
+wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc <span class="p">|</span> apt-key add -
+
+apt-get update
+
+apt-get -y install postgresql
+</code></pre></div><h3 id="postgresql角色和验证方法">PostgreSQL角色和验证方法</h3>
+<p>    PostgreSQL使用角色的概念来处理数据库访问权限。根据角色的设置方式，它可以代表一个数据库用户或一组数据库用户。</p>
+<p>PostgreSQL支持多种身份验证方法。最常用的方法是：</p>
+<ul>
+<li>
+<p>信任-只要符合角色中定义的条件，角色就可以在没有密码的情况下进行连接pg_hba.conf。</p>
+</li>
+<li>
+<p>密码-角色可以通过提供密码进行连接。密码可以存储为scram-sha-256 md5和password（明文）</p>
+</li>
+<li>
+<p>标识符-仅支持TCP / IP连接。它通过获取客户端的操作系统用户名以及可选的用户名映射来工作。</p>
+</li>
+<li>
+<p>对等-与Ident相同，但仅在本地连接上受支持。</p>
+</li>
+</ul>
+<p>    PostgreSQL客户端身份验证在名为的配置文件中定义pg_hba.conf。对于本地连接，PostgreSQL设置为使用对等身份验证方法。在安装PostgreSQL时自动创建“postgres”用户。该用户是PostgreSQL实例的超级用户，它等效于MySQL根用户。要以“postgres”身份登录到PostgreSQL服务器，请切换到用户postgres并使用该psql实用程序访问PostgreSQL提示符：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">su - postgres
+psql
+</code></pre></div><p>在这里，您可以与PostgreSQL服务器进行交互。要退出PostgreSQL shell，请输入：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="se">\q</span>
+</code></pre></div><p>通常仅从本地主机使用该用户。</p>
+<h3 id="创建postgresql角色和数据库">创建PostgreSQL角色和数据库</h3>
+<p>    createuser命令允许您从命令行创建新角色。只有超级用户和具有CREATEROLE特权的角色才能创建新角色。</p>
+<p>    在以下示例中，我们将创建一个名为“linux265”的新角色，一个名为“linux265db”的数据库，并授予该角色对该数据库的特权。</p>
+<p>首先，通过发出以下命令来创建角色：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">su - postgres -c <span class="s2">&#34;createuser linux265&#34;</span>
+</code></pre></div><p>接下来，使用以下createdb命令创建数据库：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">su - postgres -c <span class="s2">&#34;createdb linux265db&#34;</span>
+</code></pre></div><p>要向数据库上的用户授予权限，请连接到PostgreSQL shell：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">su postgres
+psql
+</code></pre></div><p>运行以下查询：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">grant all privileges on database linux265db to linux265<span class="p">;</span>
+</code></pre></div><h3 id="启用对postgresql服务器的远程访问">启用对PostgreSQL服务器的远程访问</h3>
+<p>    默认情况下，PostgreSQL服务器仅在本地接口上侦听127.0.0.1。如果要从远程位置连接到PostgreSQL服务器，则需要将服务器设置为在公共接口上侦听，并编辑配置以接受远程连接。</p>
+<p>    打开配置文件，postgresql.conf然后listen_addresses = &lsquo;*&lsquo;在CONNECTIONS AND AUTHENTICATION部分中添加。这指示服务器在所有网络接口上进行侦听。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">vi /etc/postgresql/11/main/postgresql.conf
+</code></pre></div><p>修改如下内容：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="c1">#------------------------------------------------------------------------------</span>
+<span class="c1"># CONNECTIONS AND AUTHENTICATION</span>
+<span class="c1">#------------------------------------------------------------------------------</span>
+
+<span class="c1"># - Connection Settings -</span>
+
+<span class="nv">listen_addresses</span> <span class="o">=</span> <span class="s1">&#39;*&#39;</span>     <span class="c1"># what IP address(es) to listen on;</span>
+</code></pre></div><p>保存文件并重新启动PostgreSQL服务以使更改生效：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">service postgresql restart
+</code></pre></div><p>使用ss实用程序验证更改：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">ss -nlt <span class="p">|</span> grep <span class="m">5432</span>
+</code></pre></div><p>输出类似如下内容：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell">LISTEN   <span class="m">0</span>         <span class="m">128</span>                 0.0.0.0:5432             0.0.0.0:*
+LISTEN   <span class="m">0</span>         <span class="m">128</span>                    <span class="o">[</span>::<span class="o">]</span>:5432                <span class="o">[</span>::<span class="o">]</span>:*
+</code></pre></div><p>输出应显示PostgreSQL 服务器在所有接口（0.0.0.0）上进行侦听。</p>
+<p>最后一步是通过编辑pg_hba.conf文件将服务器配置为接受远程登录。</p>
+<p>以下是显示不同用例的一些示例：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-shell" data-lang="shell"><span class="c1"># TYPE  DATABASE        USER            ADDRESS                 METHOD</span>
+
+<span class="c1"># The user linux265 will be able to access all databases from all locations using an md5 password</span>
+host    all             linux265            0.0.0.0/0                md5
+
+<span class="c1"># The user linux265 will be able to access only the janedb from all locations using an md5 password</span>
+host    linux265db          linux265            0.0.0.0/0                md5
+
+<span class="c1"># The user linux265 will be able to access all databases from a trusted location (192.168.1.134) without a password</span>
+host    all             linux265            192.168.1.134            trust
+</code></pre></div></article><section class="article labels"><a class="category" href=/categories/%E6%8A%80%E6%9C%AF/>技术</a><a class="category" href=/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/>数据库</a><a class="tag" href=/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/>数据库</a><a class="tag" href=/tags/postgresql/>postgresql</a></section>
+</div>
+<div class="article bottom"><section class="article navigation"><p><a class="link" href="/posts/%E6%8A%80%E6%9C%AF/debian/debian10%E5%AE%89%E8%A3%85nas%E4%B8%8E%E5%AA%92%E4%BD%93%E6%9C%8D%E5%8A%A1/"><span class="iconfont icon-article"></span>安装NAS与媒体服务</a></p><p><a class="link" href="/posts/%E6%8A%80%E6%9C%AF/debian/debian-10-%E5%AE%89%E8%A3%85%E8%BE%93%E5%85%A5%E6%B3%95/"><span class="iconfont icon-article"></span>安装输入法</a></p></section></div></section><section id="footer"><div class="footer-wrap">
+    <p class="copyright">Copyright ©2021-2099 Salman.</p></div>
+</section><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css" integrity="sha384-zB1R0rpPzHqg7Kpt0Aljp8JPLqbXI3bhnPWROx27a9N0Ll6ZP/&#43;DiW/UqRcLbRjq" crossorigin="anonymous"><script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js" integrity="sha384-y23I5Q6l&#43;B6vatafAwxRu/0oK/79VlbSz7Q9aiSZUvyWYIYsd&#43;qj&#43;o24G5ZU2zJz" crossorigin="anonymous"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js" integrity="sha384-kWPLUVMOks5AQFrykwIup5lo0m3iMkkHrD0uJ4H5cjeGihAutqP0yW0J6dpFiVkI" crossorigin="anonymous"
+            onload="renderMathInElement(document.body);"></script><script src="/js/prism.min.a3995e4e31ad988992f22cde2df66a5efbb7cf211dbaba67dbf4c96efd0883c728a2f2ae94db1dbbe9b72893e18a9ed6.js" integrity="sha384-o5leTjGtmImS8izeLfZqXvu3zyEdurpn2/TJbv0Ig8coovKulNsdu&#43;m3KJPhip7W"></script><script>
+    var _hmt = _hmt || [];
+    (function() {
+        var hm = document.createElement("script");
+        hm.src = "https://hm.baidu.com/hm.js?2b59024f651488c102f34ca466295b1d";
+        var s = document.getElementsByTagName("script")[0]; 
+        s.parentNode.insertBefore(hm, s);
+    })();
+</script>    </body>
+
+</html>
